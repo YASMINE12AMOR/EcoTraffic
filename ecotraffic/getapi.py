@@ -37,4 +37,4 @@ df = pd.DataFrame(records)
 
 # 6️⃣ Affichage tabulaire
 print("\n=== Aperçu des données de trafic à Rennes ===\n")
-print(df.head(10))  # affiche les 10 premières lignes
+print(df.head(40))  # affiche les 10 premières lignes

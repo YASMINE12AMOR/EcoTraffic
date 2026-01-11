@@ -1,0 +1,24 @@
+# Here you can define all your datasets by using simple YAML syntax.
+#
+# Documentation for this file format can be found in "The Data Catalog"
+# Link: https://docs.kedro.org/en/stable/data/data_catalog.html
+# Données brutes de l'API (en mémoire)
+raw_traffic_data:
+  type: MemoryDataset
+
+# Données parsées (en mémoire)
+parsed_traffic_data:
+  type: MemoryDataset
+
+# Données nettoyées (sauvegardées en CSV)
+cleaned_traffic_data:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/traffic_cleaned.csv
+  save_args:
+    index: false
+    encoding: utf-8
+
+# Données finales pour analyse
+traffic_data_primary:
+  type: pandas.ParquetDataset
+  filepath: data/03_primary/traffic.parquet

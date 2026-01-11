@@ -1,0 +1,7 @@
+# Paramètres de l'API Rennes Métropole
+api_url: "https://data.rennesmetropole.fr/api/records/1.0/search/"
+
+api_params:
+  dataset: "etat-du-trafic-en-temps-reel"
+  rows: 100
+  sort: "-datetime"
