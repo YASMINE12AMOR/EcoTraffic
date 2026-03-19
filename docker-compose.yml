@@ -47,6 +47,18 @@ services:
       sleep 10 &&
       exec airflow scheduler
       "
-
+  postgres:
+    image: postgres:15
+    container_name: postgres-ecotraffic
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecotraffic
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 volumes:
   airflow_home:
+  postgres_data:

@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ecotraffic-kedro"
+version = "0.1.0"
+description = "Kedro preprocessing for EcoTraffic"
+requires-python = ">=3.9,<3.12"
+
+[tool.kedro]
+package_name = "ecotraffic_kedro"
+project_name = "EcoTraffic Kedro"
+kedro_init_version = "0.19.14"
+source_dir = "src"
