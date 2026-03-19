@@ -1,5 +1,7 @@
-kedro
-requests
+apache-airflow==2.7.3
 pandas
+requests
 pymongo
 python-dotenv
+pytest
+mongomock

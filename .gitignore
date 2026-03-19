@@ -1,2 +1,22 @@
-.env
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environnement virtuel
 .venv/
+venv/
+
+# Airflow
+airflow_home/
+
+# Logs
+*.log
+
+# Env variables (IMPORTANT)
+.env
+
+# OS
+.DS_Store
+Thumbs.db

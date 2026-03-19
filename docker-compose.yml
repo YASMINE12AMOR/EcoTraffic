@@ -1,21 +1,52 @@
-version: "3.9"
-
 services:
-  airflow:
+  airflow-webserver:
     image: apache/airflow:2.7.3
-    container_name: airflow
+    container_name: airflow-webserver
     restart: always
     environment:
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__CORE__EXECUTOR: SequentialExecutor
-      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
-      MONGO_URI: "${MONGO_URI}"
-      PYTHONPATH: "/opt/airflow/scripts"
+      AIRFLOW_HOME: /opt/airflow
+      PYTHONPATH: /opt/airflow
     volumes:
+      - airflow_home:/opt/airflow
       - ./airflow/dags:/opt/airflow/dags
-      - ./scripts:/opt/airflow/scripts
+      - ./app:/opt/airflow/app
       - ./.env:/opt/airflow/.env
       - ./requirements.txt:/requirements.txt
     ports:
       - "8080:8080"
-    # ✅ On ne met plus de commande custom ici
+    command: >
+      bash -c "
+      pip install --no-cache-dir -r /requirements.txt &&
+      airflow db init &&
+      airflow users create --username admin --password admin123 --firstname Eya --lastname Bensalem --role Admin --email eya@example.com || true &&
+      exec airflow webserver --workers 1
+      "
+
+  airflow-scheduler:
+    image: apache/airflow:2.7.3
+    container_name: airflow-scheduler
+    restart: always
+    depends_on:
+      - airflow-webserver
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW_HOME: /opt/airflow
+      PYTHONPATH: /opt/airflow
+    volumes:
+      - airflow_home:/opt/airflow
+      - ./airflow/dags:/opt/airflow/dags
+      - ./app:/opt/airflow/app
+      - ./.env:/opt/airflow/.env
+      - ./requirements.txt:/requirements.txt
+    command: >
+      bash -c "
+      pip install --no-cache-dir -r /requirements.txt &&
+      sleep 10 &&
+      exec airflow scheduler
+      "
+
+volumes:
+  airflow_home:
