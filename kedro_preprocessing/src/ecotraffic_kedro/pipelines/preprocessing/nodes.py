@@ -21,10 +21,13 @@ ENV_NUMERIC_COLS = [
 
 
 def extract_env_from_mongo() -> pd.DataFrame:
-    """Lire la collection brute MongoDB weather_pollution"""
-    client = MongoClient(os.getenv("MONGO_URI"))
-    db = client[os.getenv("MONGO_DB")]
-    collection = db[os.getenv("MONGO_COLLECTION")]
+    mongo_uri = os.getenv("MONGO_URI")
+    mongo_db = os.getenv("MONGO_DB")
+    mongo_collection = os.getenv("MONGO_COLLECTION")
+
+    client = MongoClient(mongo_uri)
+    db = client[mongo_db]
+    collection = db[mongo_collection]
 
     docs = list(collection.find({}))
     df = pd.DataFrame(docs)
@@ -34,7 +37,6 @@ def extract_env_from_mongo() -> pd.DataFrame:
 
 
 def preprocess_env(df: pd.DataFrame) -> pd.DataFrame:
-    """Nettoyage et enrichissement des données environnementales"""
     df = df.copy()
 
     if df.empty:
@@ -65,7 +67,6 @@ def preprocess_env(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def save_env_to_postgres(df: pd.DataFrame) -> None:
-    """Écrire les données propres dans PostgreSQL"""
     if df.empty:
         print("Aucune donnée à écrire dans PostgreSQL.")
         return

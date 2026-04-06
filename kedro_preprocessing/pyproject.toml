@@ -13,3 +13,5 @@ package_name = "ecotraffic_kedro"
 project_name = "EcoTraffic Kedro"
 kedro_init_version = "0.19.14"
 source_dir = "src"
+[tool.kedro_telemetry]
+project_id = "95ceda4325ea447eb81423aac6141fc1"
