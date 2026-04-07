@@ -1,0 +1,6 @@
+mongodb:
+  connection_string: "mongodb://localhost:27017"
+  database_name: "traffic_db"
+  collection_name: "rennes_traffic_raw"
+  query: {}  # Filtre vide = tous les documents
+  limit: null  # null = pas de limite

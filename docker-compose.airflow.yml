@@ -1,0 +1,43 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: ecotraffic-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    container_name: ecotraffic-airflow
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      MONGODB_URI: mongodb://mongo:27017
+      PYTHONPATH: /opt/ecotraffic:/opt/ecotraffic/ecotraffic/src
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+      - ./:/opt/ecotraffic
+    ports:
+      - "8080:8080"
+    command: standalone
+
+volumes:
+  airflow_logs:
+  airflow_plugins:
+  mongo_data:

@@ -1,4 +1,4 @@
-"""EcoTraffic file for ensuring the package is executable
+"""ecotraffic file for ensuring the package is executable
 as `ecotraffic` and `python -m ecotraffic`
 """
 import sys

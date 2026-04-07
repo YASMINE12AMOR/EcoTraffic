@@ -1,5 +1,5 @@
 """
-This is a boilerplate test file for pipeline 'data_ingestion'
+This is a boilerplate test file for pipeline 'transform'
 generated using Kedro 1.1.1.
 Please add your pipeline tests here.
 
