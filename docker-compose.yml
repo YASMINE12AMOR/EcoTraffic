@@ -1,6 +1,6 @@
 services:
   airflow-webserver:
-    image: apache/airflow:2.7.3
+    image: apache/airflow:2.7.3-python3.10
     container_name: airflow-webserver
     restart: always
     environment:
@@ -23,24 +23,33 @@ services:
       airflow users create --username admin --password admin123 --firstname Eya --lastname Bensalem --role Admin --email eya@example.com || true &&
       exec airflow webserver --workers 1
       "
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
 
   airflow-scheduler:
-    image: apache/airflow:2.7.3
+    image: apache/airflow:2.7.3-python3.10
     container_name: airflow-scheduler
     restart: always
     depends_on:
       - airflow-webserver
+      - postgres
     environment:
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__CORE__EXECUTOR: SequentialExecutor
       AIRFLOW_HOME: /opt/airflow
       PYTHONPATH: /opt/airflow
+      MONGO_URI: mongodb://mongo:27017/ecotraffic
+      POSTGRES_URI: postgresql://postgres:postgres@postgres:5432/ecotraffic
+      POSTGRES_TABLE_ENV: environment_features
     volumes:
       - airflow_home:/opt/airflow
       - ./airflow/dags:/opt/airflow/dags
       - ./app:/opt/airflow/app
       - ./.env:/opt/airflow/.env
       - ./requirements.txt:/requirements.txt
+      - ./kedro_preprocessing:/opt/airflow/kedro_preprocessing
     command: >
       bash -c "
       pip install --no-cache-dir -r /requirements.txt &&
@@ -58,7 +67,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: ecotraffic
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 volumes:
