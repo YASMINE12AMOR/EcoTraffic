@@ -2,6 +2,7 @@ import os
 from typing import Any, Dict, List
 
 import pandas as pd
+from dotenv import load_dotenv
 from pymongo import MongoClient
 
 
@@ -16,6 +17,17 @@ HIERARCHY_COL = "Hi\u00e9rarchie"
 
 MOJIBAKE_RELIABILITY_COL = "Fiabilit\u00c3\u00a9 (%)"
 MOJIBAKE_HIERARCHY_COL = "Hi\u00c3\u00a9rarchie"
+OUTPUT_COLUMNS = [
+    DATE_COL,
+    ROUTE_COL,
+    AVG_SPEED_COL,
+    MAX_SPEED_COL,
+    TRAVEL_TIME_COL,
+    RELIABILITY_COL,
+    STATUS_COL,
+    HIERARCHY_COL,
+    "_id",
+]
 
 
 def _first_present(fields: Dict[str, Any], *keys: str) -> Any:
@@ -23,6 +35,13 @@ def _first_present(fields: Dict[str, Any], *keys: str) -> Any:
         if key in fields and fields[key] is not None:
             return fields[key]
     return None
+
+
+def _serialise_mongo_document(document: Dict[str, Any]) -> Dict[str, Any]:
+    serialised = dict(document)
+    if serialised.get("_id") is not None:
+        serialised["_id"] = str(serialised["_id"])
+    return serialised
 
 def fetch_traffic_data_from_mongodb(
     connection_string: str,
@@ -44,6 +63,8 @@ def fetch_traffic_data_from_mongodb(
     Returns:
         Liste de documents MongoDB
     """
+    load_dotenv()
+
     connection_string = os.getenv("MONGODB_URI", connection_string)
     database_name = os.getenv("MONGO_DB", database_name)
     collection_name = os.getenv("MONGO_COLLECTION", collection_name)
@@ -56,9 +77,16 @@ def fetch_traffic_data_from_mongodb(
     if limit:
         cursor = cursor.limit(limit)
     
-    records = list(cursor)
+    records = [_serialise_mongo_document(document) for document in cursor]
     client.close()
-    
+
+    if not records:
+        raise ValueError(
+            "No traffic records were found in MongoDB. "
+            "Run `load_to_mongodb.py` first or verify "
+            "`MONGODB_URI`, `MONGO_DB`, and `MONGO_COLLECTION`."
+        )
+
     return records
 
 def parse_traffic_records(raw_data: List[Dict[str, Any]]) -> pd.DataFrame:
@@ -100,7 +128,7 @@ def parse_traffic_records(raw_data: List[Dict[str, Any]]) -> pd.DataFrame:
             "_id": str(doc.get("_id")) if doc.get("_id") is not None else None,
         })
 
-    return pd.DataFrame(records)
+    return pd.DataFrame(records, columns=OUTPUT_COLUMNS)
 
 
 def _normalise_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -133,7 +161,7 @@ def clean_traffic_data(df: pd.DataFrame) -> pd.DataFrame:
     df = _normalise_columns(df.copy())
 
     # Types
-    df[DATE_COL] = pd.to_datetime(df[DATE_COL], errors="coerce", utc=True)
+    df[DATE_COL] = pd.to_datetime(df[DATE_COL], errors="coerce")
 
     numeric_cols = [
         AVG_SPEED_COL,
@@ -161,5 +189,8 @@ def clean_traffic_data(df: pd.DataFrame) -> pd.DataFrame:
 
     # Trier par date décroissante (comme ton ancienne version)
     df = df.sort_values(DATE_COL, ascending=False)
+
+    # Clé de jointure avec les données climat (tronquée à l'heure)
+    df["datetime_hour"] = df[DATE_COL].dt.floor("h")
 
     return df

@@ -39,7 +39,7 @@ def _run_command(command: list[str], cwd: Path) -> None:
     dag_id="ecotraffic_ingestion_preprocessing",
     description="Loads raw traffic data into MongoDB, then runs Kedro preprocessing.",
     start_date=datetime(2026, 1, 1),
-    schedule=None,
+    schedule="@hourly",
     catchup=False,
     default_args={
         "owner": "ecotraffic",
@@ -51,7 +51,7 @@ def _run_command(command: list[str], cwd: Path) -> None:
 def ecotraffic_ingestion_preprocessing():
     @task(task_id="load_raw_data_into_mongodb")
     def load_raw_data_into_mongodb() -> None:
-        _run_command(["python", "load_to_mongodb.py"], cwd=PROJECT_ROOT)
+        _run_command(["python", "load_to_mongodb.py"], cwd=KEDRO_PROJECT_ROOT)
 
     @task(task_id="run_kedro_preprocessing")
     def run_kedro_preprocessing() -> None:

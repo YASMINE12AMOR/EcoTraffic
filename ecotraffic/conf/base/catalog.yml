@@ -1,6 +1,6 @@
 # Raw data from MongoDB
-traffic_raw:
-  type: pandas.JSONDataset
+traffic_raw_data:
+  type: kedro_datasets.json.JSONDataset
   filepath: data/01_raw/traffic_raw.json
   # Ou utilisez un custom dataset MongoDB
 
@@ -13,11 +13,19 @@ traffic_parsed:
   save_args:
     index: false
     encoding: "utf-8-sig"
+  fs_args:
+    open_args_save:
+      mode: w
+      encoding: "utf-8-sig"
 
 # --- Sortie finale persistée ---
 traffic_cleaned:
-  type: pandas.CSVDataset
+  type: kedro_datasets.pandas.CSVDataset
   filepath: data/03_primary/traffic_cleaned.csv
   save_args:
     index: false
     encoding: "utf-8-sig"
+  fs_args:
+    open_args_save:
+      mode: w
+      encoding: "utf-8-sig"

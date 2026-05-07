@@ -83,5 +83,5 @@ if __name__ == "__main__":
     repo = MongoTrafficRepository()
     job = TrafficIngestionJob(api_client, repo)
 
-    inserted = job.run(rows=100)
+    inserted = job.run(rows=1000)
     print(f"✅ Inserted {inserted} documents into {repo.db_name}.{repo.collection_name}")
