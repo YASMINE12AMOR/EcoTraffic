@@ -1,0 +1,7 @@
+raw_env_df:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/raw_env_df.csv
+
+preprocessed_env_df:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/preprocessed_env_df.csv

@@ -1,68 +1,233 @@
-# EcoTraffic 🚦
+# 🚦 EcoTraffic – Pipeline de données (Trafic, Météo & Qualité de l’air)
 
-> Real-time traffic data ingestion and analysis for Rennes Métropole
+## 📌 Présentation du projet
 
-## 📊 Description
+**EcoTraffic** est un projet de data engineering qui met en place un **pipeline ETL automatisé** permettant de collecter, transformer et stocker des données environnementales :
 
-EcoTraffic is a data ingestion script that retrieves and structures real-time road traffic data from the Rennes Métropole Open Data API. The output is a structured Pandas DataFrame where each row represents a road segment observation at a specific point in time.
+* 🌦️ Données météo
+* 🌫️ Qualité de l’air
 
-## 📋 DataFrame Structure
+Le pipeline est orchestré avec **Apache Airflow** et les données sont stockées dans **MongoDB Atlas (base NoSQL cloud)**.
 
-The script outputs a Pandas DataFrame with the following columns:
+---
 
-### 🕒 Date/Heure
-Exact date and time of the traffic measurement.
+## 🎯 Objectifs
 
-### 🛣️ Route
-Name of the road segment (e.g., "Route départementale 34").
+* Collecter des données en temps réel via des APIs
+* Nettoyer et fusionner des données hétérogènes
+* Stocker les données dans une base NoSQL
+* Automatiser l’exécution du pipeline
+* Garantir la qualité avec des tests
 
-### 🚗 Vitesse Moyenne (km/h)
-Average speed of vehicles on the segment.
-- **Primary indicator** of traffic fluidity
+---
 
-### ⚡ Vitesse Max (km/h)
-Maximum observed speed on the segment.
+## 🏗️ Architecture
 
-### ⏱️ Temps de Trajet (s)
-Estimated travel time to cross the segment (in seconds).
+```
+            ┌───────────────┐
+            │ API Météo     │
+            └──────┬────────┘
+                   │
+            ┌──────▼────────┐
+            │ API Qualité   │
+            │ de l’air      │
+            └──────┬────────┘
+                   │
+               [Extract]
+                   │
+               [Transform]
+                   │
+               [Load]
+                   │
+            ┌──────▼────────┐
+            │ MongoDB Atlas │
+            └──────┬────────┘
+                   │
+             Apache Airflow
+        (Orchestration & planification)
+```
 
-### 🎯 Fiabilité (%)
-Reliability level of the travel time estimation.
-- A value of `0` indicates low or unavailable reliability
+---
 
-### 🚦 Statut Trafic
-Overall traffic status:
-- `freeFlow`: Fluid traffic
-- `unknown`: Undetermined status
+## ⚙️ Stack technique
 
-### 🗺️ Hiérarchie
+* **Python 3**
+* **Pandas** → traitement des données
+* **MongoDB Atlas** → base NoSQL cloud
+* **Apache Airflow** → orchestration
+* **Docker** → conteneurisation
+* **Pytest** → tests unitaires
 
+### APIs utilisées :
 
-## Kedro : Définition
-Kedro est un framework open-source développé par QuantumBlack (McKinsey) pour créer des pipelines de data science reproductibles, maintenables et modulaires.
+* Open-Meteo (météo)
+* Open-Meteo Air Quality
 
-## 🎯 Avantages principaux :
+---
 
-Structure projet standardisée (comme Django pour le web)
-Pipelines modulaires : découper votre code en étapes réutilisables
-Gestion des données : catalogues pour sources de données
-Versioning : suivi des données et des modèles
-Reproductibilité : mêmes résultats à chaque exécution
-Visualisation : graphe de dépendances entre les étapes
+## 📂 Structure du projet
 
-## 🚀 Getting Started
+```
+EcoTraffic/
+│
+├── app/
+│   ├── pipeline.py        # Pipeline ETL principal
+│   ├── extract.py         # Extraction des données
+│   ├── transform.py       # Transformation 
+│   ├── load.py            # Chargement 
+│
+├── airflow/
+│   └── dags/
+│       └── etl_orchestration.py
+│
+├── tests/
+│   └── test_pipeline.py
+│
+├── .env
+├── docker-compose.yml
+├── requirements.txt
+└── README.md
+```
 
+---
 
-## 📦 Requirements
+## 🔄 Fonctionnement du pipeline ETL
 
+### 1️⃣ Extract (Extraction)
 
+* Récupération des données météo via API
+* Récupération des données de qualité de l’air
 
-## 📄 License
+---
 
-This project uses Open Data from Rennes Métropole.
+### 2️⃣ Transform (Transformation)
 
-## 🤝 Contributing
+* Conversion des dates (datetime)
+* Nettoyage des données
+* Fusion des datasets
 
+---
 
+### 3️⃣ Load (Chargement)
 
-Made with ❤️ for sustainable urban mobility
+* Insertion dans MongoDB Atlas
+* Collection : `weather_pollution`
+
+---
+
+## ▶️ Lancer le pipeline en local
+
+```bash id="run123"
+python -m app.pipeline
+```
+
+Résultat attendu :
+
+```id="out123"
+Inserted XXX documents into MongoDB
+```
+
+---
+
+## 🐳 Lancer avec Docker & Airflow
+
+```bash id="docker123"
+docker compose up --build
+```
+
+Accès Airflow :
+
+```id="airflow123"
+http://localhost:8080
+```
+
+Identifiants :
+
+* Username : `admin`
+* Password : `admin123`
+
+---
+
+## ⏰ Automatisation avec Airflow
+
+Le pipeline est exécuté automatiquement :
+
+```python id="schedule123"
+schedule_interval="@daily"
+```
+
+Airflow permet :
+
+* la planification
+* le monitoring
+* la gestion des logs
+* la reprise en cas d’erreur
+
+---
+
+## 🧪 Tests
+
+Lancer les tests :
+
+```bash id="test123"
+pytest
+```
+
+Tests réalisés :
+
+* extraction des données
+* transformation
+* pipeline complet
+
+---
+
+## 🌍 Variables d’environnement (.env)
+
+```env id="env123"
+MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/ecotraffic
+MONGO_DB=ecotraffic
+MONGO_COLLECTION=weather_pollution
+
+WEATHER_API_URL=https://api.open-meteo.com/v1/forecast
+AIR_QUALITY_API_URL=https://air-quality-api.open-meteo.com/v1/air-quality
+
+LATITUDE=48.1173
+LONGITUDE=-1.6778
+```
+
+---
+
+## 📊 Améliorations possibles
+
+* Intégration des données de trafic 🚗
+* Création d’un dashboard (Streamlit / Power BI)
+* Ajout de modèles prédictifs
+* Déploiement cloud (GCP / AWS)
+
+---
+
+## 💡 Compétences développées
+
+* Conception d’un pipeline ETL complet
+* Utilisation d’APIs temps réel
+* Orchestration avec Airflow
+* Gestion de bases NoSQL
+* Mise en place de tests
+
+---
+
+## 👩‍💻 Auteur
+
+**Eya Ben Salem**
+Master Big Data & IA
+
+---
+
+## ⭐ Conclusion
+
+Ce projet démontre la mise en place d’un **pipeline de données automatisé**, proche des standards professionnels, combinant ingestion, transformation, stockage et orchestration.
+
+---
+
+✨ *Projet réutilisable et extensible pour des cas d’usage data engineering réels.*
+>>>>>>> aa4508ed07ba6a28bbbd1fb28234b98554cc3b7a
