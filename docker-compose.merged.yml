@@ -1,0 +1,77 @@
+services:
+
+  mongo:
+    image: mongo:7
+    container_name: ecotraffic-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:15
+    container_name: ecotraffic-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecotraffic
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  airflow:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    container_name: ecotraffic-airflow
+    depends_on:
+      mongo:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      # Ton pipeline (trafic)
+      MONGODB_URI: mongodb://mongo:27017
+      MONGO_DB: ecotraffic
+      MONGO_COLLECTION: traffic
+      # Pipeline de ton ami (météo/pollution + Postgres)
+      MONGO_URI: mongodb://mongo:27017/ecotraffic
+      MONGO_COLLECTION_ENV: weather_pollution
+      WEATHER_API_URL: https://api.open-meteo.com/v1/forecast
+      AIR_QUALITY_API_URL: https://air-quality-api.open-meteo.com/v1/air-quality
+      LATITUDE: "48.1173"
+      LONGITUDE: "-1.6778"
+      POSTGRES_URI: postgresql+psycopg2://postgres:postgres@postgres:5432/ecotraffic
+      POSTGRES_TABLE_ENV: environment_features
+      # PYTHONPATH couvre les deux projets Kedro
+      PYTHONPATH: /opt/ecotraffic:/opt/ecotraffic/ecotraffic/src:/opt/airflow:/opt/airflow/kedro_preprocessing/src
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+      # Ton projet monté à la racine attendue par ton DAG
+      - ./:/opt/ecotraffic
+      # Projet de ton ami monté aux chemins attendus par son DAG
+      - ./kedro_preprocessing:/opt/airflow/kedro_preprocessing
+      - ./app:/opt/airflow/app
+    ports:
+      - "8080:8080"
+    command: standalone
+
+volumes:
+  mongo_data:
+  postgres_data:
+  airflow_logs:
+  airflow_plugins:

@@ -43,6 +43,6 @@ def save_to_mongo(df: pd.DataFrame) -> int:
     loader = MongoLoader(
         mongo_uri=os.getenv("MONGO_URI"),
         mongo_db=os.getenv("MONGO_DB", "ecotraffic"),
-        mongo_collection=os.getenv("MONGO_COLLECTION", "weather_pollution"),
+        mongo_collection=os.getenv("MONGO_COLLECTION_ENV", "weather_pollution"),
     )
     return loader.save(df)

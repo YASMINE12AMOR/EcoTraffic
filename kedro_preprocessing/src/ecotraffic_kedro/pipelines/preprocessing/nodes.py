@@ -23,7 +23,7 @@ ENV_NUMERIC_COLS = [
 def extract_env_from_mongo() -> pd.DataFrame:
     mongo_uri = os.getenv("MONGO_URI")
     mongo_db = os.getenv("MONGO_DB")
-    mongo_collection = os.getenv("MONGO_COLLECTION")
+    mongo_collection = os.getenv("MONGO_COLLECTION_ENV", "weather_pollution")
 
     client = MongoClient(mongo_uri)
     db = client[mongo_db]
