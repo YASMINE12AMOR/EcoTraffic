@@ -55,8 +55,10 @@ def ecotraffic_full_pipeline():
     def extract_to_mongo() -> None:
         _run_command(["python", "-m", "app.pipeline"], cwd=PROJECT_ROOT)
 
-    @task(task_id="transform_with_kedro")
+    @task(task_id="transform_with_kedro", retries=3, retry_delay=timedelta(seconds=30))
     def transform_with_kedro() -> None:
+        import time
+        time.sleep(5)
         _run_command(["kedro", "run"], cwd=KEDRO_PROJECT_ROOT)
 
     @task(task_id="check_postgres_table")
