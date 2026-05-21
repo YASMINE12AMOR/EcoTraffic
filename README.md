@@ -1,6 +1,6 @@
 # EcoTraffic — Pipeline de données & Machine Learning (Rennes)
 
-Projet de Data Engineering et Machine Learning collectant des données de **trafic routier**, de **météo** et de **qualité de l'air** sur la ville de **Rennes**, avec un pipeline ETL automatisé et une couche ML prédictive en cours de développement.
+Projet de Data Engineering et Machine Learning collectant des données de **trafic routier**, de **météo** et de **qualité de l'air** sur la ville de **Rennes**, avec un pipeline ETL automatisé et un modèle ML de prédiction de la qualité de l'air.
 
 ---
 
@@ -84,16 +84,15 @@ Projet de Data Engineering et Machine Learning collectant des données de **traf
 ┌─────────────────────────────────────────────────────────────────┐
 │                     MACHINE LEARNING                            │
 │                                                                 │
-│  Modèle Trafic                    Modèle Environnement          │
+│  Modèle Trafic [A FAIRE]          Modèle Environnement [FAIT]   │
 │  - target : Statut Trafic         - target : nitrogen_dioxide   │
-│    ou Vitesse Moyenne               ou pm2_5                    │
-│  - algo   : Random Forest         - algo   : XGBoost / LSTM     │
-│             XGBoost                                             │
+│  - algo   : Random Forest         - algo   : XGBoost Regression │
+│             XGBoost               - R² = 0.758 / MAE = 0.587   │
 │         ↓                                     ↓                 │
-│    congestion_score               pollution_score               │
+│    congestion_score               pollution_score (NO2 µg/m³)   │
 │         └──────────────┬──────────────────────┘                 │
 │                        ▼                                        │
-│                 EcoTraffic Score                                │
+│                 EcoTraffic Score             [A FAIRE]          │
 │           (Rouge / Orange / Vert par zone)                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -112,7 +111,7 @@ Projet de Data Engineering et Machine Learning collectant des données de **traf
 | Orchestration | **Apache Airflow** | 2 DAGs (horaire + quotidien) |
 | Conteneurisation | **Docker** | `docker-compose.yml` |
 | Tests | Pytest | Tests unitaires et d'intégration |
-| ML (en cours) | scikit-learn / XGBoost | Modèles prédictifs |
+| ML | **XGBoost** + scikit-learn + matplotlib | Modèle NO2 entraîné et visualisé |
 
 ---
 
@@ -158,7 +157,25 @@ EcoTraffic/
 │       ├── ecotraffic_ingestion_preprocessing.py   # DAG trafic (@hourly)
 │       └── etl_orchestration.py                    # DAG env (@daily)
 │
+├── ml/                               # Machine Learning
+│   ├── env_model.py                  # Modèle XGBoost — prédiction NO2
+│   ├── env_model_viz.py              # Visualisation des résultats
+│   └── models/
+│       ├── env_no2_model.pkl         # Modèle entraîné (sauvegardé)
+│       └── env_model_results.png     # Graphiques des résultats
+│
+├── tests/                            # Tests automatiques
+│   ├── test_data_traffic.py          # Qualité données trafic réelles
+│   ├── test_data_env.py              # Qualité données météo+pollution réelles
+│   ├── test_env_model.py             # Tests du modèle ML (19 tests)
+│   ├── test_merge.py                 # Tests fusion météo+pollution
+│   ├── test_traffic_nodes.py         # Tests pipeline trafic Kedro
+│   ├── test_env_nodes.py             # Tests pipeline environnement Kedro
+│   ├── test_extract.py               # Tests extraction APIs
+│   └── test_load.py                  # Tests chargement MongoDB
+│
 ├── .env                              # Variables d'environnement
+├── pytest.ini                        # Configuration pytest
 ├── docker-compose.yml                # MongoDB + PostgreSQL + Airflow
 ├── requirements.txt
 └── README.md
@@ -199,6 +216,76 @@ EcoTraffic/
 
 ---
 
+## Machine Learning — Prédiction NO₂
+
+### Objectif
+
+Prédire le taux de **dioxyde d'azote (NO₂)** à Rennes en µg/m³ à partir des conditions météo et de la pollution ambiante.
+
+### Modèle
+
+| Paramètre | Valeur |
+|---|---|
+| Algorithme | XGBoost Regression |
+| Target | `nitrogen_dioxide` (µg/m³) |
+| Dataset | 120 lignes — mai 2026 |
+| Split | 80% train / 20% test |
+
+### Features utilisées
+
+| Feature | Rôle |
+|---|---|
+| `carbon_monoxide` | Même source que NO2 (combustion) — 55.5% d'importance |
+| `ozone` | Réaction chimique directe avec NO2 — 34.4% |
+| `hour` | Heures de pointe vs nuit |
+| `day_of_week` | Lundi (rush) vs dimanche |
+| `temperature_2m` | Dispersion verticale des polluants |
+| `wind_speed_10m` | Dispersion horizontale |
+| `precipitation` / `rain_flag` | Nettoyage de l'air par la pluie |
+
+### Résultats
+
+| Métrique | Valeur | Interprétation |
+|---|---|---|
+| **R²** | **0.758** | Le modèle explique 75.8% de la variance du NO2 |
+| **MAE** | 0.587 µg/m³ | Erreur moyenne de 0.6 µg/m³ |
+| **RMSE** | 0.886 µg/m³ | Erreur quadratique |
+
+### Fichiers
+
+| Fichier | Rôle |
+|---|---|
+| `ml/env_model.py` | Entraînement, évaluation, prédiction |
+| `ml/env_model_viz.py` | Visualisation des résultats (4 graphiques) |
+| `ml/models/env_no2_model.pkl` | Modèle sérialisé |
+| `ml/models/env_model_results.png` | Graphiques sauvegardés |
+
+---
+
+## Avancement du projet
+
+| Composant | Statut |
+|---|---|
+| Extraction trafic (API Rennes) | Fait |
+| Extraction météo (Open-Meteo) | Fait |
+| Extraction pollution (Open-Meteo AQ) | Fait |
+| Transformation Kedro — trafic | Fait |
+| Transformation Kedro — environnement | Fait |
+| Fusion météo + pollution | Fait |
+| Stockage MongoDB | Fait |
+| Stockage PostgreSQL | Fait |
+| DAG Airflow trafic (@hourly) | Fait |
+| DAG Airflow environnement (@daily) | Fait |
+| Tests automatiques (99 tests) | Fait |
+| Conteneurisation Docker | Fait |
+| **Modèle ML environnement (NO2)** | **Fait** |
+| Fusion trafic + environnement | En cours |
+| Modèle ML trafic | A faire |
+| EcoTraffic Score combiné | A faire |
+| Dashboard de visualisation | A faire |
+
+---
+
 ## Lancer le projet
 
 ### En local
@@ -211,6 +298,16 @@ python -m app.pipeline
 cd ecotraffic
 python load_to_mongodb.py
 kedro run --pipeline data_processing
+```
+
+### Modèle ML — Prédiction NO2
+
+```bash
+# Entraîner le modèle et afficher les métriques
+python ml/env_model.py
+
+# Visualiser les résultats (graphiques)
+python ml/env_model_viz.py
 ```
 
 ### Avec Docker et Airflow
@@ -262,7 +359,7 @@ python -m pytest tests/test_data_traffic.py tests/test_data_env.py -v
 python -m pytest tests/ -v -x
 ```
 
-Résultat attendu : **80 passed**
+Résultat attendu : **99 passed**
 
 ---
 
@@ -272,6 +369,7 @@ Résultat attendu : **80 passed**
 |---|---|---|
 | `tests/test_data_traffic.py` | 17 | Qualité des données réelles trafic (traffic_cleaned.csv) |
 | `tests/test_data_env.py` | 22 | Qualité des données réelles météo + pollution (preprocessed_env_df.csv) |
+| `tests/test_env_model.py` | 19 | Modèle ML : chargement, entraînement, métriques, prédiction, sauvegarde |
 | `tests/test_merge.py` | 13 | Fusion météo + pollution, flags, erreurs |
 | `tests/test_traffic_nodes.py` | 14 | Parsing et nettoyage des données trafic |
 | `tests/test_env_nodes.py` | 11 | Preprocessing des données environnement |
