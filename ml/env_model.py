@@ -4,6 +4,34 @@ Modèle ML — Prédiction du NO2 (dioxyde d'azote) à Rennes.
 Source des données : kedro_preprocessing/data/02_intermediate/preprocessed_env_df.csv
 Target            : nitrogen_dioxide (µg/m³)
 Algorithme        : XGBoost Regression
+
+Pourquoi XGBoost ?
+------------------
+1. Petit dataset (120 lignes) : XGBoost gère bien les petits volumes sans overfitting
+   grâce à la régularisation L1/L2 intégrée. Les réseaux de neurones (LSTM) nécessitent
+   des milliers d'exemples pour converger correctement.
+
+2. Features hétérogènes : le dataset mélange des variables continues (température, vent),
+   des entiers (heure, jour) et des binaires (rain_flag, is_weekend). XGBoost n'exige
+   aucune normalisation ni encodage préalable, contrairement à la régression linéaire
+   ou aux SVR.
+
+3. Relations non-linéaires : NO2 ne varie pas linéairement avec la température ou
+   l'heure (pics aux heures de pointe, effet de la pluie). XGBoost capture ces
+   interactions automatiquement via l'ensemble d'arbres de décision.
+
+4. Interprétabilité : XGBoost fournit nativement l'importance des features, ce qui
+   permet de comprendre POURQUOI le modèle prédit une valeur donnée (CO à 55%,
+   ozone à 34%) — essentiel pour un projet environnemental.
+
+5. Rapidité : entraînement en < 1 seconde sur ce volume, ce qui permet de ré-entraîner
+   le modèle à chaque nouvelle collecte de données sans coût computationnel.
+
+Alternatives écartées :
+- Régression linéaire : relations non-linéaires dans les données → sous-ajustement
+- Random Forest      : moins efficace que XGBoost sur petits datasets (variance élevée)
+- LSTM               : nécessite beaucoup plus de données temporelles séquentielles
+- SVR                : sensible à la normalisation et plus long à calibrer
 """
 
 import os

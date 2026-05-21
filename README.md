@@ -231,6 +231,27 @@ Prédire le taux de **dioxyde d'azote (NO₂)** à Rennes en µg/m³ à partir d
 | Dataset | 120 lignes — mai 2026 |
 | Split | 80% train / 20% test |
 
+### Justification du choix — XGBoost
+
+**XGBoost a été choisi pour 5 raisons :**
+
+| Raison | Explication |
+|---|---|
+| **Petit dataset** | 120 lignes seulement. XGBoost intègre une régularisation L1/L2 qui évite l'overfitting. Les réseaux de neurones (LSTM) nécessitent des milliers d'exemples. |
+| **Features hétérogènes** | Le dataset mélange continu (température, vent), entiers (heure, jour) et binaires (rain_flag). XGBoost ne nécessite aucune normalisation, contrairement à la régression linéaire ou SVR. |
+| **Relations non-linéaires** | Le NO2 ne varie pas linéairement avec l'heure (pics aux heures de pointe) ni avec la pluie. XGBoost capture ces interactions automatiquement via ses arbres de décision. |
+| **Interprétabilité** | Fournit nativement l'importance des features (CO = 55%, ozone = 34%), essentiel pour justifier les prédictions dans un projet environnemental. |
+| **Rapidité** | Entraînement en < 1 seconde, ce qui permet de ré-entraîner à chaque nouvelle collecte sans coût computationnel. |
+
+**Alternatives écartées :**
+
+| Modèle | Raison du rejet |
+|---|---|
+| Régression linéaire | Relations non-linéaires dans les données → sous-ajustement |
+| Random Forest | Moins efficace que XGBoost sur petits datasets (variance élevée) |
+| LSTM | Nécessite beaucoup plus de données temporelles séquentielles |
+| SVR | Sensible à la normalisation et plus long à calibrer |
+
 ### Features utilisées
 
 | Feature | Rôle |
