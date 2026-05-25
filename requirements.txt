@@ -9,3 +9,7 @@ kedro==0.19.14
 kedro-datasets[pandas]
 sqlalchemy
 psycopg2-binary
+streamlit
+plotly
+scikit-learn
+xgboost

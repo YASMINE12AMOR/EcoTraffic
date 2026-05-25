@@ -14,6 +14,10 @@ airflow_home/
 # Logs
 *.log
 
+# Local presentation/report deliverables
+docs/
+scripts/generate_soutenance_ppt.py
+
 # Env variables (IMPORTANT)
 .env
 
