@@ -1,0 +1,89 @@
+{
+  "created_at": "2026-05-25T20:58:21.392508",
+  "stats": {
+    "temperature_2m": {
+      "mean": 28.219999999999995,
+      "std": 5.357969011927291,
+      "min": 18.0,
+      "max": 36.6,
+      "null_count": 0
+    },
+    "precipitation": {
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "null_count": 0
+    },
+    "wind_speed_10m": {
+      "mean": 10.145000000000001,
+      "std": 4.247843743664336,
+      "min": 0.8,
+      "max": 20.8,
+      "null_count": 0
+    },
+    "wind_kmh": {
+      "mean": 36.522,
+      "std": 15.292237477191607,
+      "min": 2.8800000000000003,
+      "max": 74.88000000000001,
+      "null_count": 0
+    },
+    "rain_flag": {
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "null_count": 0
+    },
+    "carbon_monoxide": {
+      "mean": 145.2275,
+      "std": 15.844750807483862,
+      "min": 116.0,
+      "max": 170.0,
+      "null_count": 0
+    },
+    "ozone": {
+      "mean": 81.32083333333334,
+      "std": 19.972859298143003,
+      "min": 44.0,
+      "max": 120.0,
+      "null_count": 0
+    },
+    "hour": {
+      "mean": 11.5,
+      "std": 6.951210522714186,
+      "min": 0.0,
+      "max": 23.0,
+      "null_count": 0
+    },
+    "day_of_week": {
+      "mean": 2.0,
+      "std": 1.4201432049934526,
+      "min": 0.0,
+      "max": 4.0,
+      "null_count": 0
+    },
+    "is_weekend": {
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "null_count": 0
+    },
+    "month": {
+      "mean": 5.0,
+      "std": 0.0,
+      "min": 5.0,
+      "max": 5.0,
+      "null_count": 0
+    },
+    "nitrogen_dioxide": {
+      "mean": 4.484166666666667,
+      "std": 2.2671937206482333,
+      "min": 1.3,
+      "max": 11.6,
+      "null_count": 0
+    }
+  }
+}

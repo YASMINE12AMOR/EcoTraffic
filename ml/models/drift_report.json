@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-05-25T20:58:21.390521",
+  "n_rows": 120,
+  "drift_alerts": [],
+  "prediction_check": {
+    "mae": 1.7461,
+    "n_samples": 120,
+    "no2_mean_current": 4.4842,
+    "no2_mean_predicted": 5.1536
+  },
+  "status": "REFERENCE_CREATED"
+}

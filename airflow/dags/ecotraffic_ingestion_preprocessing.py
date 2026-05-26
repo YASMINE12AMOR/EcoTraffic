@@ -70,11 +70,48 @@ def ecotraffic_ingestion_preprocessing():
             raise ValueError(f"The file {OUTPUT_FILE} exists but is empty.")
         return str(OUTPUT_FILE)
 
+    @task(task_id="monitor_data_quality")
+    def monitor_data_quality() -> str:
+        import json
+        import pandas as pd
+
+        df = pd.read_csv(str(OUTPUT_FILE))
+        VALID_STATUTS = {"freeflow", "heavy", "congested", "unknown"}
+
+        report = {
+            "timestamp": datetime.now().isoformat(),
+            "total_rows": len(df),
+            "null_route": int(df["Route"].isna().sum()),
+            "null_speed": int(df["Vitesse Moyenne (km/h)"].isna().sum()),
+            "null_date": int(df["Date/Heure"].isna().sum()),
+            "speed_out_of_range": int(((df["Vitesse Moyenne (km/h)"] < 0) | (df["Vitesse Moyenne (km/h)"] > 130)).sum()),
+            "invalid_statuses": list(set(df["Statut Trafic"].dropna().unique()) - VALID_STATUTS),
+            "duplicates": int(df.duplicated().sum()),
+        }
+
+        log_path = Path("/opt/airflow/logs/monitor_traffic_quality.json")
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "w") as f:
+            json.dump(report, f, indent=2)
+
+        if report["total_rows"] == 0:
+            raise ValueError(f"MONITOR: Aucune ligne dans traffic_cleaned.csv")
+        if report["null_speed"] > 0:
+            raise ValueError(f"MONITOR: {report['null_speed']} vitesses nulles détectées")
+        if report["speed_out_of_range"] > 0:
+            raise ValueError(f"MONITOR: {report['speed_out_of_range']} vitesses hors plage [0-130]")
+        if report["invalid_statuses"]:
+            raise ValueError(f"MONITOR: Statuts invalides détectés : {report['invalid_statuses']}")
+
+        print(f"Data quality OK:\n{json.dumps(report, indent=2)}")
+        return json.dumps(report)
+
     raw_ingestion = load_raw_data_into_mongodb()
     kedro_preprocessing = run_kedro_preprocessing()
     output_validation = validate_kedro_output()
+    quality_check = monitor_data_quality()
 
-    raw_ingestion >> kedro_preprocessing >> output_validation
+    raw_ingestion >> kedro_preprocessing >> output_validation >> quality_check
 
 
 ecotraffic_ingestion_preprocessing()

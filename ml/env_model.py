@@ -66,10 +66,14 @@ TARGET = "nitrogen_dioxide"
 
 
 def load_data() -> pd.DataFrame:
-    return pd.read_csv(DATA_PATH)
+    df = pd.read_csv(DATA_PATH)
+    df = df.dropna(subset=FEATURES + [TARGET])
+    df = df[~df[TARGET].isin([float("inf"), float("-inf")])]
+    return df
 
 
 def train(df: pd.DataFrame) -> tuple:
+    df = df.dropna(subset=FEATURES + [TARGET])
     X = df[FEATURES]
     y = df[TARGET]
 
