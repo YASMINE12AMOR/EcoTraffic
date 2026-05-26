@@ -1,0 +1,28 @@
+name: EcoTraffic CI
+
+on:
+  push:
+    branches: [main, Yasmine]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pandas numpy scikit-learn xgboost pytest pymongo mongomock python-dotenv kedro==1.1.1 kedro-datasets[pandas] sqlalchemy
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
