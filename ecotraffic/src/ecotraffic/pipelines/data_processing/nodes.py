@@ -27,6 +27,8 @@ OUTPUT_COLUMNS = [
     STATUS_COL,
     HIERARCHY_COL,
     "_id",
+    "Latitude",
+    "Longitude",
 ]
 
 
@@ -116,6 +118,10 @@ def parse_traffic_records(raw_data: List[Dict[str, Any]]) -> pd.DataFrame:
         status = _first_present(fields, "trafficstatus", "traffic_status", STATUS_COL)
         hierarchie = _first_present(fields, "hierarchie", HIERARCHY_COL, MOJIBAKE_HIERARCHY_COL)
 
+        geo = _first_present(fields, "geo_point_2d") or {}
+        lat = geo.get("lat") if isinstance(geo, dict) else _first_present(fields, "latitude", "Latitude")
+        lon = geo.get("lon") if isinstance(geo, dict) else _first_present(fields, "longitude", "Longitude")
+
         records.append({
             DATE_COL: dt,
             ROUTE_COL: route,
@@ -126,6 +132,8 @@ def parse_traffic_records(raw_data: List[Dict[str, Any]]) -> pd.DataFrame:
             STATUS_COL: status,
             HIERARCHY_COL: hierarchie,
             "_id": str(doc.get("_id")) if doc.get("_id") is not None else None,
+            "Latitude": lat,
+            "Longitude": lon,
         })
 
     return pd.DataFrame(records, columns=OUTPUT_COLUMNS)

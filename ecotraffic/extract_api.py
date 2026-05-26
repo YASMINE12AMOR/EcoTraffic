@@ -49,6 +49,7 @@ class TrafficAPIClient:
 
         for rec in data.get("records", []):
             fields = rec.get("fields", {})
+            geo = fields.get("geo_point_2d") or {}
             records.append({
                 "datetime": fields.get("datetime"),
                 "route": fields.get("denomination"),
@@ -58,6 +59,8 @@ class TrafficAPIClient:
                 "reliability_pct": fields.get("traveltimereliability"),
                 "traffic_status": fields.get("trafficstatus"),
                 "hierarchie": fields.get("hierarchie"),
+                "latitude": geo.get("lat") if isinstance(geo, dict) else None,
+                "longitude": geo.get("lon") if isinstance(geo, dict) else None,
             })
 
         return pd.DataFrame(records)

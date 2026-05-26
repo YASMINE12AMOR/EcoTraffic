@@ -56,120 +56,200 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
     :root {
-        --bg: #f5f8f6;
-        --panel: rgba(255, 255, 255, 0.96);
-        --panel-strong: #ffffff;
-        --line: rgba(17, 24, 39, 0.12);
-        --green: #0f9f6e;
-        --blue: #1677b8;
-        --orange: #c77700;
-        --red: #c93636;
-        --text: #13201b;
-        --text-soft: #5f6f68;
+        --bg: #F6F8F7;
+        --panel: #FFFFFF;
+        --line: rgba(15, 159, 110, 0.18);
+        --line-gray: rgba(0, 0, 0, 0.08);
+        --green: #0CAF6D;
+        --green-light: #E8F8F1;
+        --blue: #2563EB;
+        --orange: #D97706;
+        --red: #DC2626;
+        --text: #111827;
+        --text-soft: #6B7280;
+        --text-muted: #9CA3AF;
     }
+
+    * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+
     .stApp {
-        background:
-            linear-gradient(180deg, #f8fbf9 0%, #edf4f0 46%, #f7faf8 100%);
+        background: linear-gradient(160deg, #F0FAF5 0%, #F6F8F7 40%, #EEF4FF 100%);
         color: var(--text);
     }
+
     section[data-testid="stSidebar"] {
-        background: #ffffff;
-        border-right: 1px solid var(--line);
+        background: #FFFFFF !important;
+        border-right: 1px solid var(--line-gray) !important;
     }
     section[data-testid="stSidebar"] * {
         color: var(--text) !important;
     }
+    section[data-testid="stSidebar"] .stButton > button {
+        background: var(--green-light) !important;
+        border: 1px solid rgba(12, 175, 109, 0.30) !important;
+        color: var(--green) !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+    }
+    section[data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(12, 175, 109, 0.18) !important;
+    }
+
     div[data-testid="stMetric"] {
         background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 16px 18px;
-        box-shadow: 0 14px 32px rgba(15, 35, 28, 0.08);
+        border: 1px solid var(--line-gray);
+        border-radius: 12px;
+        padding: 18px 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+        border-top: 3px solid var(--green);
     }
     div[data-testid="stMetric"] label,
-    div[data-testid="stMetric"] [data-testid="stMetricLabel"],
-    div[data-testid="stMetric"] [data-testid="stMetricValue"],
-    div[data-testid="stMetric"] [data-testid="stMetricDelta"] {
-        color: var(--text) !important;
+    div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
+        color: var(--text-soft) !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.7px !important;
     }
-    div[data-testid="stMetricValue"] {
-        font-size: 30px;
-        font-weight: 750;
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        color: var(--text) !important;
+        font-size: 28px !important;
+        font-weight: 700 !important;
+    }
+    div[data-testid="stMetric"] [data-testid="stMetricDelta"] {
+        color: var(--green) !important;
     }
     div[data-testid="stMetricDelta"] svg {
-        fill: var(--text) !important;
+        fill: var(--green) !important;
     }
+
     .hero {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 26px 28px;
-        margin-bottom: 18px;
-        background:
-            linear-gradient(120deg, rgba(15, 159, 110, 0.14), rgba(22, 119, 184, 0.10)),
-            #ffffff;
-        box-shadow: 0 18px 42px rgba(15, 35, 28, 0.10);
+        border: 1px solid rgba(12, 175, 109, 0.20);
+        border-left: 4px solid var(--green);
+        border-radius: 12px;
+        padding: 28px 32px;
+        margin-bottom: 20px;
+        background: linear-gradient(120deg, rgba(12, 175, 109, 0.06) 0%, rgba(37, 99, 235, 0.04) 100%), #FFFFFF;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(12, 175, 109, 0.06);
     }
     .hero h1 {
         margin: 0;
-        font-size: 42px;
+        font-size: 40px;
+        font-weight: 800;
         line-height: 1.05;
-        letter-spacing: 0;
+        letter-spacing: -0.5px;
+        color: var(--text);
     }
     .hero p {
         color: var(--text-soft);
-        font-size: 17px;
-        max-width: 900px;
+        font-size: 14px;
+        max-width: 920px;
         margin: 10px 0 0;
+        line-height: 1.65;
     }
+
     .status-pill {
-        display: inline-block;
-        padding: 7px 11px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        margin-bottom: 13px;
-        background: rgba(15, 159, 110, 0.10);
-        color: #0b6b4a;
-        font-weight: 650;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border: 1px solid rgba(12, 175, 109, 0.30);
+        border-radius: 20px;
+        margin-bottom: 14px;
+        background: var(--green-light);
+        color: var(--green);
+        font-weight: 600;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
     }
+
     .section-note {
-        color: var(--text-soft);
-        margin-top: -8px;
-        margin-bottom: 12px;
+        color: var(--text-muted);
+        margin-top: -6px;
+        margin-bottom: 14px;
+        font-size: 13px;
     }
+
     .small-card {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 14px 16px;
+        border: 1px solid var(--line-gray);
+        border-radius: 10px;
+        padding: 16px 18px;
         background: var(--panel);
-        min-height: 96px;
-        box-shadow: 0 12px 26px rgba(15, 35, 28, 0.06);
+        min-height: 88px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.04);
+        margin-bottom: 10px;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .small-card:hover {
+        border-color: rgba(12, 175, 109, 0.35);
+        box-shadow: 0 2px 8px rgba(12, 175, 109, 0.10), 0 4px 16px rgba(0,0,0,0.06);
     }
     .small-card strong {
         display: block;
-        font-size: 15px;
-        margin-bottom: 8px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 7px;
+        color: var(--green);
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
     }
     .small-card span {
         color: var(--text-soft);
-        font-size: 14px;
+        font-size: 13px;
+        line-height: 1.55;
     }
+
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 4px;
+        background: transparent !important;
+        border-bottom: 2px solid #E5E7EB !important;
+        padding-bottom: 0;
     }
     .stTabs [data-baseweb="tab"] {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #ffffff;
+        border: none;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        background: transparent;
         padding: 8px 14px;
-        color: var(--text);
+        color: var(--text-soft) !important;
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: -2px;
     }
     .stTabs [aria-selected="true"] {
-        background: rgba(15, 159, 110, 0.12);
-        border-color: rgba(15, 159, 110, 0.38);
+        background: transparent !important;
+        border-bottom: 2px solid var(--green) !important;
+        color: var(--green) !important;
+        font-weight: 600 !important;
     }
-    h1, h2, h3, h4, h5, h6, p, span, label {
-        color: var(--text);
+
+    h1, h2, h3, h4, h5, h6 { color: var(--text); }
+    p, span, label { color: var(--text); }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #F1F5F9; }
+    ::-webkit-scrollbar-thumb { background: rgba(12, 175, 109, 0.35); border-radius: 3px; }
+
+    div[data-testid="stDownloadButton"] > button {
+        background: var(--green-light) !important;
+        border: 1px solid rgba(12, 175, 109, 0.30) !important;
+        color: var(--green) !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+    }
+    div[data-testid="stDownloadButton"] > button:hover {
+        background: rgba(12, 175, 109, 0.16) !important;
+    }
+
+    .stAlert {
+        background: #FFFFFF !important;
+        border-color: var(--line-gray) !important;
+        color: var(--text) !important;
+        border-radius: 10px !important;
     }
     </style>
     """,
@@ -350,18 +430,18 @@ def gauge(title: str, value: float, suffix: str = "") -> go.Figure:
         go.Indicator(
             mode="gauge+number",
             value=value,
-            number={"suffix": suffix, "font": {"size": 34, "color": "#13201b"}},
-            title={"text": title, "font": {"size": 16, "color": "#13201b"}},
+            number={"suffix": suffix, "font": {"size": 34, "color": "#111827"}},
+            title={"text": title, "font": {"size": 15, "color": "#6B7280"}},
             gauge={
-                "axis": {"range": [0, 100], "tickcolor": "rgba(19,32,27,.45)"},
-                "bar": {"color": score_color(value), "thickness": 0.28},
-                "bgcolor": "rgba(255,255,255,0.9)",
+                "axis": {"range": [0, 100], "tickcolor": "rgba(0,0,0,0.25)"},
+                "bar": {"color": score_color(value), "thickness": 0.30},
+                "bgcolor": "#FFFFFF",
                 "borderwidth": 1,
-                "bordercolor": "rgba(17,24,39,0.12)",
+                "bordercolor": "rgba(0,0,0,0.10)",
                 "steps": [
-                    {"range": [0, 35], "color": "rgba(15, 159, 110, 0.18)"},
-                    {"range": [35, 65], "color": "rgba(199, 119, 0, 0.18)"},
-                    {"range": [65, 100], "color": "rgba(201, 54, 54, 0.17)"},
+                    {"range": [0, 35], "color": "rgba(12, 175, 109, 0.10)"},
+                    {"range": [35, 65], "color": "rgba(217, 119, 6, 0.10)"},
+                    {"range": [65, 100], "color": "rgba(220, 38, 38, 0.10)"},
                 ],
             },
         )
@@ -370,7 +450,7 @@ def gauge(title: str, value: float, suffix: str = "") -> go.Figure:
         height=260,
         margin=dict(l=18, r=18, t=48, b=16),
         paper_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#13201b"},
+        font={"color": "#111827"},
     )
     return fig
 
@@ -602,7 +682,7 @@ with tab_control:
                 y=trend[pollutant],
                 mode="lines",
                 name="Mesure",
-                line=dict(color="rgba(92, 200, 255, 0.45)", width=2),
+                line=dict(color="rgba(37, 99, 235, 0.35)", width=2),
             )
         )
         fig.add_trace(
@@ -611,18 +691,18 @@ with tab_control:
                 y=trend["pollutant_smoothed"],
                 mode="lines",
                 name="Tendance",
-                line=dict(color="#39d98a", width=4),
+                line=dict(color="#0CAF6D", width=3),
             )
         )
         fig.update_layout(
             height=360,
             margin=dict(l=12, r=12, t=10, b=10),
             paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="#ffffff",
-            font=dict(color="#13201b"),
+            plot_bgcolor="#FFFFFF",
+            font=dict(color="#111827"),
             legend=dict(orientation="h"),
-            xaxis=dict(gridcolor="rgba(17,24,39,0.08)"),
-            yaxis=dict(gridcolor="rgba(17,24,39,0.08)"),
+            xaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+            yaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -659,10 +739,10 @@ with tab_control:
         height=390,
         margin=dict(l=12, r=12, t=20, b=10),
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="#ffffff",
-        font=dict(color="#13201b"),
-        xaxis=dict(gridcolor="rgba(17,24,39,0.08)"),
-        yaxis=dict(gridcolor="rgba(17,24,39,0.08)"),
+        plot_bgcolor="#FFFFFF",
+        font=dict(color="#111827"),
+        xaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+        yaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
     )
     st.plotly_chart(fig_pollutants, use_container_width=True)
 
@@ -726,8 +806,8 @@ with tab_traffic:
                 height=360,
                 margin=dict(l=8, r=8, t=12, b=8),
                 paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="#ffffff",
-                font=dict(color="#13201b"),
+                plot_bgcolor="#FFFFFF",
+                font=dict(color="#111827"),
             )
             st.plotly_chart(fig_speed, use_container_width=True)
 
@@ -776,7 +856,7 @@ with tab_traffic:
             fig_status.update_layout(
                 height=390,
                 paper_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#13201b"),
+                font=dict(color="#111827"),
             )
             st.plotly_chart(fig_status, use_container_width=True)
 
@@ -798,8 +878,8 @@ with tab_traffic:
                 yaxis={"categoryorder": "total ascending"},
                 margin=dict(l=8, r=8, t=12, b=8),
                 paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="#ffffff",
-                font=dict(color="#13201b"),
+                plot_bgcolor="#FFFFFF",
+                font=dict(color="#111827"),
                 coloraxis_showscale=False,
             )
             st.plotly_chart(fig_routes, use_container_width=True)
@@ -808,11 +888,21 @@ with tab_traffic:
 
 with tab_map:
     st.subheader("Carte operationnelle de Rennes")
+
+    STATUS_COLORS = {
+        "freeflow": "#0CAF6D",
+        "freeFlow": "#0CAF6D",
+        "heavy": "#D97706",
+        "congested": "#DC2626",
+        "unknown": "#9CA3AF",
+    }
+
     has_traffic_coordinates = (
         not traffic_df.empty
         and {"Latitude", "Longitude"}.issubset(traffic_df.columns)
         and traffic_df[["Latitude", "Longitude"]].notna().all(axis=1).any()
     )
+
     if has_traffic_coordinates:
         map_traffic = traffic_df.dropna(subset=["Latitude", "Longitude"]).copy()
         if traffic_status_filter:
@@ -824,7 +914,7 @@ with tab_map:
             map_traffic["Vitesse Moyenne (km/h)"], errors="coerce"
         )
         st.markdown(
-            '<p class="section-note">Carte basee sur les points GPS reels des routes Rennes disponibles dans l API trafic.</p>',
+            '<p class="section-note">Carte basee sur les points GPS reels des routes — couleurs par statut trafic.</p>',
             unsafe_allow_html=True,
         )
         fig_map = px.scatter_mapbox(
@@ -837,26 +927,36 @@ with tab_map:
             hover_data={
                 "Vitesse Moyenne (km/h)": True,
                 "Vitesse Max (km/h)": True,
+                "Statut Trafic": True,
                 "Latitude": False,
                 "Longitude": False,
             },
-            color_discrete_map={
-                "freeflow": "#0f9f6e",
-                "freeFlow": "#0f9f6e",
-                "heavy": "#c77700",
-                "congested": "#c93636",
-                "unknown": "#6b7280",
-            },
+            color_discrete_map=STATUS_COLORS,
             zoom=11,
-            height=620,
+            height=560,
         )
+        fig_map.update_layout(
+            mapbox_style="open-street-map",
+            margin=dict(l=0, r=0, t=0, b=0),
+            paper_bgcolor="rgba(0,0,0,0)",
+            legend=dict(
+                title="Statut trafic",
+                bgcolor="rgba(255,255,255,0.92)",
+                bordercolor="rgba(0,0,0,0.10)",
+                borderwidth=1,
+                font=dict(color="#111827"),
+            ),
+        )
+        st.plotly_chart(fig_map, use_container_width=True)
+
     else:
-        map_note = (
-            "Les points par quartier combinent pollution et score trafic reel quand traffic_cleaned.csv est disponible."
-            if not traffic_df.empty
-            else "Les points par quartier sont indicatifs. Genere traffic_cleaned.csv pour activer la couche trafic reelle."
-        )
-        st.markdown(f'<p class="section-note">{map_note}</p>', unsafe_allow_html=True)
+        # Fallback: zone map
+        if not traffic_df.empty:
+            st.info(
+                "Coordonnees GPS absentes du fichier traffic_cleaned.csv. "
+                "Cliquez sur **Rafraichir le trafic** dans la barre laterale pour activer "
+                "la carte par route avec les statuts freeflow / heavy / congested."
+            )
         zones = build_zone_map(score)
         fig_map = px.scatter_mapbox(
             zones,
@@ -867,27 +967,93 @@ with tab_map:
             hover_name="zone",
             hover_data={"score": True, "lat": False, "lon": False, "taille": False},
             color_discrete_map={
-                "Normal": "#39d98a",
-                "Vigilance": "#ffb84d",
-                "Critique": "#ff5d5d",
+                "Normal": "#0CAF6D",
+                "Vigilance": "#D97706",
+                "Critique": "#DC2626",
             },
             zoom=11,
-            height=620,
+            height=480,
         )
-    fig_map.update_layout(
-        mapbox_style="open-street-map",
-        margin=dict(l=0, r=0, t=0, b=0),
-        paper_bgcolor="rgba(0,0,0,0)",
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#13201b")),
-    )
-    st.plotly_chart(fig_map, use_container_width=True)
+        fig_map.update_layout(
+            mapbox_style="open-street-map",
+            margin=dict(l=0, r=0, t=0, b=0),
+            paper_bgcolor="rgba(0,0,0,0)",
+            legend=dict(
+                title="Niveau EcoTraffic",
+                bgcolor="rgba(255,255,255,0.92)",
+                bordercolor="rgba(0,0,0,0.10)",
+                borderwidth=1,
+                font=dict(color="#111827"),
+            ),
+        )
+        st.plotly_chart(fig_map, use_container_width=True)
+
+        # Affiche la répartition des statuts trafic même sans GPS
+        if not traffic_df.empty:
+            st.subheader("Repartition des statuts trafic")
+            st.markdown(
+                '<p class="section-note">Distribution des 89 routes par statut — donnees disponibles meme sans coordonnees GPS.</p>',
+                unsafe_allow_html=True,
+            )
+            status_counts = (
+                traffic_df["Statut Trafic"]
+                .astype(str).str.lower().str.strip()
+                .value_counts()
+                .reset_index()
+            )
+            status_counts.columns = ["Statut", "Nombre"]
+            status_counts["Couleur"] = status_counts["Statut"].map(STATUS_COLORS).fillna("#9CA3AF")
+
+            col_bar, col_donut = st.columns([1.4, 1])
+            with col_bar:
+                fig_status_bar = px.bar(
+                    status_counts,
+                    x="Statut",
+                    y="Nombre",
+                    color="Statut",
+                    color_discrete_map=STATUS_COLORS,
+                    text="Nombre",
+                    labels={"Statut": "Statut trafic", "Nombre": "Nombre de routes"},
+                )
+                fig_status_bar.update_traces(textposition="outside")
+                fig_status_bar.update_layout(
+                    height=320,
+                    margin=dict(l=8, r=8, t=12, b=8),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="#FFFFFF",
+                    font=dict(color="#111827"),
+                    showlegend=False,
+                    xaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+                    yaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+                )
+                st.plotly_chart(fig_status_bar, use_container_width=True)
+
+            with col_donut:
+                fig_status_pie = px.pie(
+                    status_counts,
+                    names="Statut",
+                    values="Nombre",
+                    hole=0.50,
+                    color="Statut",
+                    color_discrete_map=STATUS_COLORS,
+                )
+                fig_status_pie.update_layout(
+                    height=320,
+                    margin=dict(l=8, r=8, t=12, b=8),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#111827"),
+                    legend=dict(font=dict(color="#111827")),
+                )
+                st.plotly_chart(fig_status_pie, use_container_width=True)
 
     c1, c2, c3 = st.columns(3)
     c1.markdown('<div class="small-card"><strong>Couche actuelle</strong><span>Meteo + pollution pretraitees depuis le pipeline Kedro.</span></div>', unsafe_allow_html=True)
     if traffic_df.empty:
-        c2.markdown('<div class="small-card"><strong>Couche trafic</strong><span>Genere traffic_cleaned.csv pour brancher routes, vitesses et statuts.</span></div>', unsafe_allow_html=True)
+        c2.markdown('<div class="small-card"><strong>Couche trafic</strong><span>Lance build_traffic_cleaned.py ou clique Rafraichir pour activer routes, vitesses et statuts.</span></div>', unsafe_allow_html=True)
+    elif has_traffic_coordinates:
+        c2.markdown('<div class="small-card"><strong>Couche trafic</strong><span>Routes GPS actives — freeflow / heavy / congested visibles sur la carte.</span></div>', unsafe_allow_html=True)
     else:
-        c2.markdown('<div class="small-card"><strong>Couche trafic</strong><span>Routes, vitesses et statuts Rennes integres au score final.</span></div>', unsafe_allow_html=True)
+        c2.markdown('<div class="small-card"><strong>Couche trafic</strong><span>Donnees trafic chargees sans GPS. Rafraichir pour activer la carte par route.</span></div>', unsafe_allow_html=True)
     c3.markdown('<div class="small-card"><strong>Valeur demo</strong><span>Une lecture geographique claire pour la soutenance et le pilotage.</span></div>', unsafe_allow_html=True)
 
 with tab_model:
@@ -906,7 +1072,7 @@ with tab_model:
             y="feature",
             orientation="h",
             color="importance",
-            color_continuous_scale=["#5cc8ff", "#39d98a", "#ffb84d"],
+            color_continuous_scale=["#2563EB", "#0CAF6D", "#D97706"],
             labels={"importance": "Importance", "feature": "Variable"},
         )
         fig_importance.update_layout(
@@ -914,8 +1080,8 @@ with tab_model:
             yaxis={"categoryorder": "total ascending"},
             margin=dict(l=8, r=8, t=12, b=8),
             paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="#ffffff",
-            font=dict(color="#13201b"),
+            plot_bgcolor="#FFFFFF",
+            font=dict(color="#111827"),
             coloraxis_showscale=False,
         )
         st.plotly_chart(fig_importance, use_container_width=True)
@@ -1142,8 +1308,8 @@ with tab_data:
             height=360,
             margin=dict(l=8, r=8, t=12, b=8),
             paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="#ffffff",
-            font=dict(color="#13201b"),
+            plot_bgcolor="#FFFFFF",
+            font=dict(color="#111827"),
         )
         st.plotly_chart(fig_missing, use_container_width=True)
     with right:
@@ -1154,7 +1320,7 @@ with tab_data:
             height=360,
             margin=dict(l=8, r=8, t=12, b=8),
             paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#13201b"),
+            font=dict(color="#111827"),
         )
         st.plotly_chart(fig_corr, use_container_width=True)
 
@@ -1187,10 +1353,10 @@ with tab_arch:
                 x=[x],
                 y=[y],
                 mode="markers+text",
-                marker=dict(size=58, color="#0f9f6e", line=dict(width=2, color="#ffffff")),
+                marker=dict(size=58, color="#0CAF6D", line=dict(width=2, color="#FFFFFF")),
                 text=[label],
                 textposition="bottom center",
-                textfont=dict(color="#13201b", size=14),
+                textfont=dict(color="#111827", size=14),
                 hoverinfo="skip",
             )
         )
@@ -1210,7 +1376,7 @@ with tab_arch:
             arrowhead=3,
             arrowsize=1.3,
             arrowwidth=2,
-            arrowcolor="#5cc8ff",
+            arrowcolor="#2563EB",
         )
     fig_arch.update_layout(
         height=360,
@@ -1218,7 +1384,7 @@ with tab_arch:
         yaxis=dict(visible=False, range=[0.35, 0.9]),
         margin=dict(l=20, r=20, t=20, b=20),
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="#ffffff",
+        plot_bgcolor="#FFFFFF",
         showlegend=False,
     )
     st.plotly_chart(fig_arch, use_container_width=True)
