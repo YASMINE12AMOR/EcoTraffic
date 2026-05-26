@@ -1,15 +1,6 @@
-apache-airflow==2.7.3
+numpy
 pandas
-requests
-pymongo
-python-dotenv
-pytest
-mongomock
-kedro==1.1.1
-kedro-datasets[pandas]
-sqlalchemy
-psycopg2-binary
-streamlit
 plotly
+streamlit
 scikit-learn
 xgboost

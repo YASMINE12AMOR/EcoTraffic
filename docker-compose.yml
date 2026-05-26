@@ -13,7 +13,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./app:/opt/airflow/app
       - ./.env:/opt/airflow/.env
-      - ./requirements.txt:/requirements.txt
+      - ./requirements-airflow.txt:/requirements.txt
     ports:
       - "8080:8080"
     command: >
@@ -50,7 +50,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./app:/opt/airflow/app
       - ./.env:/opt/airflow/.env
-      - ./requirements.txt:/requirements.txt
+      - ./requirements-airflow.txt:/requirements.txt
       - ./kedro_preprocessing:/opt/airflow/kedro_preprocessing
       - ./ecotraffic:/opt/ecotraffic/ecotraffic
       - ./.env:/opt/ecotraffic/ecotraffic/.env
