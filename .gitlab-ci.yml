@@ -33,6 +33,8 @@ build:
 deploy:
   stage: deploy
   image: alpine:latest
+  when: manual
+  allow_failure: true
 
   only:
     - main
