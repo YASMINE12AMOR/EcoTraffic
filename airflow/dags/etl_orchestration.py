@@ -7,8 +7,15 @@ from pathlib import Path
 
 from airflow.decorators import dag, task
 
-PROJECT_ROOT = Path("/opt/airflow")
-KEDRO_PROJECT_ROOT = PROJECT_ROOT / "kedro_preprocessing"
+# Support docker-compose.merged.yml (/opt/ecotraffic) et docker-compose.yml (/opt/airflow)
+_ECOTRAFFIC_ROOT = Path("/opt/ecotraffic")
+_AIRFLOW_ROOT = Path("/opt/airflow")
+PROJECT_ROOT = _ECOTRAFFIC_ROOT if (_ECOTRAFFIC_ROOT / "app").exists() else _AIRFLOW_ROOT
+KEDRO_PROJECT_ROOT = (
+    PROJECT_ROOT / "kedro_preprocessing"
+    if (PROJECT_ROOT / "kedro_preprocessing").exists()
+    else _AIRFLOW_ROOT / "kedro_preprocessing"
+)
 
 
 def _build_env() -> dict[str, str]:
@@ -18,23 +25,38 @@ def _build_env() -> dict[str, str]:
         str(PROJECT_ROOT),
         str(PROJECT_ROOT / "app"),
         str(KEDRO_PROJECT_ROOT / "src"),
+        str(_AIRFLOW_ROOT),
+        str(_AIRFLOW_ROOT / "app"),
+        str(_AIRFLOW_ROOT / "kedro_preprocessing" / "src"),
     ]
 
     current_pythonpath = env.get("PYTHONPATH")
     if current_pythonpath:
         pythonpath_entries.append(current_pythonpath)
 
-    env["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
+    env["PYTHONPATH"] = os.pathsep.join(dict.fromkeys(pythonpath_entries))
     return env
 
 
 def _run_command(command: list[str], cwd: Path) -> None:
-    subprocess.run(
+    result = subprocess.run(
         command,
         cwd=str(cwd),
         env=_build_env(),
-        check=True,
+        capture_output=True,
+        text=True,
     )
+    if result.stdout:
+        print("--- STDOUT ---")
+        print(result.stdout)
+    if result.stderr:
+        print("--- STDERR ---")
+        print(result.stderr)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Command {command} failed (exit {result.returncode}).\n"
+            f"STDERR:\n{result.stderr}\nSTDOUT:\n{result.stdout}"
+        )
 
 
 @dag(

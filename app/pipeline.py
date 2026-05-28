@@ -29,5 +29,13 @@ def run_pipeline() -> int:
 
 
 if __name__ == "__main__":
-    count = run_pipeline()
-    print(f"Pipeline completed successfully. Inserted: {count}")
+    import sys
+    try:
+        count = run_pipeline()
+        print(f"Pipeline completed successfully. Inserted: {count}")
+        sys.exit(0)
+    except Exception as exc:
+        print(f"Pipeline FAILED: {exc}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(1)

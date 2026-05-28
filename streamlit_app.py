@@ -1,6 +1,7 @@
 from pathlib import Path
 import subprocess
 import sys
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -15,6 +16,7 @@ from ml.env_model import (
     feature_importance,
     load_data,
     load_model,
+    save_model,
     train,
 )
 
@@ -59,172 +61,206 @@ st.markdown(
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     :root {
-        --bg: #F6F8F7;
+        --bg: #F4F6F5;
         --panel: #FFFFFF;
-        --line: rgba(15, 159, 110, 0.18);
-        --line-gray: rgba(0, 0, 0, 0.08);
+        --green-dark: #1A4731;
+        --green-dark-hover: #1F5939;
         --green: #0CAF6D;
-        --green-light: #E8F8F1;
+        --green-light: #E8F5EF;
         --blue: #2563EB;
         --orange: #D97706;
         --red: #DC2626;
         --text: #111827;
         --text-soft: #6B7280;
         --text-muted: #9CA3AF;
+        --border: rgba(0,0,0,0.07);
+        --radius: 16px;
+        --radius-sm: 10px;
+        --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+        --shadow-md: 0 2px 8px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
     }
 
     * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
 
-    .stApp {
-        background: linear-gradient(160deg, #F0FAF5 0%, #F6F8F7 40%, #EEF4FF 100%);
-        color: var(--text);
-    }
+    .stApp { background: var(--bg); color: var(--text); }
 
+    /* ── Sidebar ── */
     section[data-testid="stSidebar"] {
         background: #FFFFFF !important;
-        border-right: 1px solid var(--line-gray) !important;
+        border-right: 1px solid var(--border) !important;
     }
-    section[data-testid="stSidebar"] * {
-        color: var(--text) !important;
-    }
+    section[data-testid="stSidebar"] * { color: var(--text) !important; }
     section[data-testid="stSidebar"] .stButton > button {
-        background: var(--green-light) !important;
-        border: 1px solid rgba(12, 175, 109, 0.30) !important;
-        color: var(--green) !important;
-        border-radius: 8px !important;
+        background: var(--green-dark) !important;
+        border: none !important;
+        color: #FFFFFF !important;
+        border-radius: 10px !important;
         font-weight: 600 !important;
+        padding: 10px 16px !important;
+        transition: background 0.2s;
+        width: 100%;
     }
     section[data-testid="stSidebar"] .stButton > button:hover {
-        background: rgba(12, 175, 109, 0.18) !important;
+        background: var(--green-dark-hover) !important;
     }
 
+    /* ── Sidebar logo ── */
+    .sidebar-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo-icon {
+        width: 40px; height: 40px;
+        background: var(--green-dark);
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 15px; font-weight: 800; color: #FFFFFF;
+        flex-shrink: 0;
+        letter-spacing: -0.5px;
+    }
+    .sidebar-logo-name {
+        font-size: 18px !important;
+        font-weight: 800 !important;
+        color: var(--text) !important;
+        line-height: 1;
+    }
+    .sidebar-section-label {
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: var(--text-muted) !important;
+        margin: 18px 0 8px 2px;
+        display: block;
+    }
+    .sidebar-promo {
+        background: var(--green-dark);
+        border-radius: 14px;
+        padding: 18px;
+        margin-top: 24px;
+    }
+    .sidebar-promo-title {
+        font-size: 14px; font-weight: 700; color: #FFFFFF !important;
+        margin-bottom: 6px;
+    }
+    .sidebar-promo-text {
+        font-size: 12px; color: rgba(255,255,255,0.70) !important;
+        line-height: 1.5;
+    }
+
+    /* ── KPI cards ── */
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+    .kpi-card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px 18px;
+        position: relative;
+        box-shadow: var(--shadow);
+        transition: box-shadow 0.2s, transform 0.15s;
+        min-height: 130px;
+        display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+    .kpi-card.featured { background: var(--green-dark); border-color: transparent; }
+    .kpi-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .kpi-label { font-size: 12px; font-weight: 500; color: var(--text-soft); margin-bottom: 10px; }
+    .kpi-card.featured .kpi-label { color: rgba(255,255,255,0.65); }
+    .kpi-value {
+        font-size: 34px; font-weight: 800; color: var(--text);
+        line-height: 1; margin-bottom: 10px;
+    }
+    .kpi-card.featured .kpi-value { color: #FFFFFF; }
+    .kpi-value small { font-size: 14px; font-weight: 500; opacity: 0.55; }
+    .kpi-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 11px; font-weight: 600; padding: 3px 10px;
+        border-radius: 20px; background: var(--green-light); color: var(--green);
+        max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .kpi-card.featured .kpi-badge { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.90); }
+    .kpi-arrow {
+        width: 26px; height: 26px; border-radius: 50%;
+        border: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 12px; color: var(--text-soft); flex-shrink: 0;
+    }
+    .kpi-card.featured .kpi-arrow { border-color: rgba(255,255,255,0.22); color: rgba(255,255,255,0.75); }
+
+    /* ── Page header ── */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: flex-end;
+        margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--border);
+    }
+    .page-title { font-size: 30px !important; font-weight: 800 !important; color: var(--text) !important; margin: 0 !important; }
+    .page-subtitle { color: var(--text-soft); font-size: 14px; margin: 4px 0 0 !important; }
+    .header-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .hbadge {
+        font-size: 12px; border-radius: 8px; padding: 6px 12px; font-weight: 500;
+        border: 1px solid var(--border); background: var(--panel); color: var(--text-soft);
+    }
+    .hbadge.green { background: var(--green-light); color: var(--green); border-color: transparent; font-weight: 600; }
+    .hbadge.status-normal  { background: var(--green-light); color: var(--green); border: none; font-weight: 700; }
+    .hbadge.status-vigilance { background: #FEF3C7; color: #92400E; border: none; font-weight: 700; }
+    .hbadge.status-critique  { background: #FEE2E2; color: #991B1B; border: none; font-weight: 700; }
+
+    /* ── Inner metric cards (tabs) ── */
     div[data-testid="stMetric"] {
         background: var(--panel);
-        border: 1px solid var(--line-gray);
-        border-radius: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
         padding: 18px 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
-        border-top: 3px solid var(--green);
+        box-shadow: var(--shadow);
     }
-    div[data-testid="stMetric"] label,
     div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
-        color: var(--text-soft) !important;
-        font-size: 11px !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.7px !important;
+        color: var(--text-soft) !important; font-size: 11px !important;
+        font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 0.7px !important;
     }
     div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: var(--text) !important;
-        font-size: 28px !important;
-        font-weight: 700 !important;
+        color: var(--text) !important; font-size: 26px !important; font-weight: 700 !important;
     }
-    div[data-testid="stMetric"] [data-testid="stMetricDelta"] {
-        color: var(--green) !important;
-    }
-    div[data-testid="stMetricDelta"] svg {
-        fill: var(--green) !important;
-    }
+    div[data-testid="stMetric"] [data-testid="stMetricDelta"] { color: var(--green) !important; }
+    div[data-testid="stMetricDelta"] svg { fill: var(--green) !important; }
 
-    .hero {
-        border: 1px solid rgba(12, 175, 109, 0.20);
-        border-left: 4px solid var(--green);
-        border-radius: 12px;
-        padding: 28px 32px;
-        margin-bottom: 20px;
-        background: linear-gradient(120deg, rgba(12, 175, 109, 0.06) 0%, rgba(37, 99, 235, 0.04) 100%), #FFFFFF;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(12, 175, 109, 0.06);
-    }
-    .hero h1 {
-        margin: 0;
-        font-size: 40px;
-        font-weight: 800;
-        line-height: 1.05;
-        letter-spacing: -0.5px;
-        color: var(--text);
-    }
-    .hero p {
-        color: var(--text-soft);
-        font-size: 14px;
-        max-width: 920px;
-        margin: 10px 0 0;
-        line-height: 1.65;
-    }
-
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 12px;
-        border: 1px solid rgba(12, 175, 109, 0.30);
-        border-radius: 20px;
-        margin-bottom: 14px;
-        background: var(--green-light);
-        color: var(--green);
-        font-weight: 600;
-        font-size: 12px;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-    }
-
-    .section-note {
-        color: var(--text-muted);
-        margin-top: -6px;
-        margin-bottom: 14px;
-        font-size: 13px;
-    }
-
+    /* ── Small cards ── */
     .small-card {
-        border: 1px solid var(--line-gray);
-        border-radius: 10px;
-        padding: 16px 18px;
-        background: var(--panel);
-        min-height: 88px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.04);
-        margin-bottom: 10px;
-        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        border: 1px solid var(--border); border-radius: var(--radius-sm);
+        padding: 16px 18px; background: var(--panel); min-height: 80px;
+        box-shadow: var(--shadow); margin-bottom: 10px;
+        transition: box-shadow 0.2s, border-color 0.2s;
     }
-    .small-card:hover {
-        border-color: rgba(12, 175, 109, 0.35);
-        box-shadow: 0 2px 8px rgba(12, 175, 109, 0.10), 0 4px 16px rgba(0,0,0,0.06);
-    }
+    .small-card:hover { border-color: rgba(12,175,109,0.25); box-shadow: var(--shadow-md); }
     .small-card strong {
-        display: block;
-        font-size: 11px;
-        font-weight: 600;
-        margin-bottom: 7px;
-        color: var(--green);
-        text-transform: uppercase;
-        letter-spacing: 0.7px;
+        display: block; font-size: 11px; font-weight: 700; margin-bottom: 6px;
+        color: var(--green); text-transform: uppercase; letter-spacing: 0.7px;
     }
-    .small-card span {
-        color: var(--text-soft);
-        font-size: 13px;
-        line-height: 1.55;
-    }
+    .small-card span { color: var(--text-soft); font-size: 13px; line-height: 1.55; }
 
+    .section-note { color: var(--text-muted); margin-top: -4px; margin-bottom: 14px; font-size: 13px; }
+
+    /* ── Tabs ── */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 4px;
-        background: transparent !important;
-        border-bottom: 2px solid #E5E7EB !important;
-        padding-bottom: 0;
+        gap: 2px; background: transparent !important;
+        border-bottom: 2px solid #E5E7EB !important; padding-bottom: 0;
     }
     .stTabs [data-baseweb="tab"] {
-        border: none;
-        border-bottom: 2px solid transparent;
-        border-radius: 0;
-        background: transparent;
-        padding: 8px 14px;
-        color: var(--text-soft) !important;
-        font-size: 13px;
-        font-weight: 500;
-        margin-bottom: -2px;
+        border: none; border-bottom: 2px solid transparent; border-radius: 0;
+        background: transparent; padding: 8px 16px;
+        color: var(--text-soft) !important; font-size: 13px; font-weight: 500; margin-bottom: -2px;
     }
     .stTabs [aria-selected="true"] {
         background: transparent !important;
-        border-bottom: 2px solid var(--green) !important;
-        color: var(--green) !important;
-        font-weight: 600 !important;
+        border-bottom: 2px solid var(--green-dark) !important;
+        color: var(--green-dark) !important; font-weight: 700 !important;
     }
 
     h1, h2, h3, h4, h5, h6 { color: var(--text); }
@@ -232,24 +268,17 @@ st.markdown(
 
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #F1F5F9; }
-    ::-webkit-scrollbar-thumb { background: rgba(12, 175, 109, 0.35); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: rgba(26,71,49,0.30); border-radius: 3px; }
 
     div[data-testid="stDownloadButton"] > button {
-        background: var(--green-light) !important;
-        border: 1px solid rgba(12, 175, 109, 0.30) !important;
-        color: var(--green) !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
+        background: var(--green-dark) !important; border: none !important;
+        color: #FFFFFF !important; border-radius: 10px !important; font-weight: 600 !important;
     }
-    div[data-testid="stDownloadButton"] > button:hover {
-        background: rgba(12, 175, 109, 0.16) !important;
-    }
+    div[data-testid="stDownloadButton"] > button:hover { background: var(--green-dark-hover) !important; }
 
     .stAlert {
-        background: #FFFFFF !important;
-        border-color: var(--line-gray) !important;
-        color: var(--text) !important;
-        border-radius: 10px !important;
+        background: #FFFFFF !important; border-color: var(--border) !important;
+        color: var(--text) !important; border-radius: var(--radius-sm) !important;
     }
     </style>
     """,
@@ -257,16 +286,18 @@ st.markdown(
 )
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def get_data() -> pd.DataFrame:
+    """Recharge les données environnement toutes les heures (rythme DAG Airflow @hourly)."""
     df = load_data()
     df["datetime"] = pd.to_datetime(df["datetime"], errors="coerce")
     df = df.dropna(subset=["datetime"]).sort_values("datetime").reset_index(drop=True)
     return df
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def get_traffic_data() -> pd.DataFrame:
+    """Recharge le CSV trafic toutes les heures (rythme DAG Airflow @hourly)."""
     if not TRAFFIC_CLEANED_PATH.exists():
         return pd.DataFrame()
 
@@ -279,16 +310,19 @@ def get_traffic_data() -> pd.DataFrame:
     return traffic
 
 
-@st.cache_resource
+@st.cache_data(ttl=3600)
 def get_model_outputs(df: pd.DataFrame):
+    """Ré-entraîne le modèle XGBoost sur les nouvelles données toutes les heures."""
     model, _x_train, x_test, _y_train, y_test = train(df)
     metrics = evaluate(model, x_test, y_test)
     importance = feature_importance(model)
+    save_model(model)
     return model, metrics, importance
 
 
-@st.cache_resource
+@st.cache_data(ttl=3600)
 def get_saved_model():
+    """Recharge le modèle sérialisé toutes les heures."""
     try:
         return load_model()
     except Exception:
@@ -523,8 +557,21 @@ df = add_scores(get_data(), traffic_df)
 model, metrics, importance = get_model_outputs(df)
 saved_model = get_saved_model()
 
+_now = datetime.now()
+next_refresh_str = (_now + timedelta(seconds=3600 - (_now.minute * 60 + _now.second) % 3600)).strftime("%H:%M")
+loaded_at_str = _now.strftime("%d/%m/%Y %H:%M")
+
 with st.sidebar:
-    st.header("Pilotage")
+    st.markdown(
+        """
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">ET</div>
+            <span class="sidebar-logo-name">EcoTraffic</span>
+        </div>
+        <span class="sidebar-section-label">Menu</span>
+        """,
+        unsafe_allow_html=True,
+    )
     min_date = df["datetime"].min()
     max_date = df["datetime"].max()
     selected_range = st.date_input(
@@ -556,7 +603,7 @@ with st.sidebar:
             options=traffic_statuses,
             default=traffic_statuses,
         )
-    st.divider()
+    st.markdown('<span class="sidebar-section-label">Donnees</span>', unsafe_allow_html=True)
     if st.button("Rafraichir le trafic", use_container_width=True):
         with st.spinner("Recuperation des donnees trafic Rennes..."):
             result = subprocess.run(
@@ -581,6 +628,18 @@ with st.sidebar:
             f"Trafic charge: {len(traffic_df)} lignes. "
             f"Periode trafic: {traffic_df['Date/Heure'].min().strftime('%d/%m/%Y %H:%M')}."
         )
+    st.markdown(
+        f"""
+        <div class="sidebar-promo">
+            <div class="sidebar-promo-title">Pipeline Airflow</div>
+            <div class="sidebar-promo-text">
+                Collecte automatique toutes les heures.<br>
+                Prochain refresh auto : <strong style="color:#FFFFFF">{next_refresh_str}</strong>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 if filtered_df.empty:
     st.warning("Aucune donnee disponible pour cette periode.")
@@ -599,29 +658,67 @@ traffic_last_update = (
     else "non disponible"
 )
 
+_status_cls = {"Normal": "status-normal", "Vigilance": "status-vigilance", "Critique": "status-critique"}.get(status, "status-normal")
+
 st.markdown(
     f"""
-    <div class="hero">
-        <span class="status-pill">Statut global: {status} | Score {score:.0f}/100</span>
-        <h1>EcoTraffic Rennes</h1>
-        <p>
-            Dashboard decisionnel pour suivre la qualite de l'air, analyser les signaux meteo-pollution
-            et simuler la concentration de NO2 avec un modele XGBoost.
-        </p>
-        <p>
-            Derniere mesure environnement: {env_last_update} | Derniere mesure trafic: {traffic_last_update}
-        </p>
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Qualite de l'air, trafic et prediction NO2 — Rennes Metropole</p>
+        </div>
+        <div class="header-badges">
+            <span class="hbadge">Env: {env_last_update}</span>
+            <span class="hbadge">Trafic: {traffic_last_update}</span>
+            <span class="hbadge green">Refresh: {next_refresh_str}</span>
+            <span class="hbadge {_status_cls}">{status} &nbsp;{score:.0f}/100</span>
+        </div>
+    </div>
+    <div class="kpi-row">
+        <div class="kpi-card featured">
+            <div class="kpi-top">
+                <span class="kpi-label">EcoTraffic Score</span>
+                <div class="kpi-arrow">&#8599;</div>
+            </div>
+            <div class="kpi-value">{score:.0f}<small>/100</small></div>
+            <span class="kpi-badge">{status}</span>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-label">NO2 actuel</span>
+                <div class="kpi-arrow">&#8599;</div>
+            </div>
+            <div class="kpi-value">{latest[TARGET]:.1f}<small> µg/m³</small></div>
+            <span class="kpi-badge">Dioxyde azote</span>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-label">Score trafic</span>
+                <div class="kpi-arrow">&#8599;</div>
+            </div>
+            <div class="kpi-value">{traffic_score:.0f}<small>/100</small></div>
+            <span class="kpi-badge">{str(traffic_source)}</span>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-label">PM2.5</span>
+                <div class="kpi-arrow">&#8599;</div>
+            </div>
+            <div class="kpi-value">{latest['pm2_5']:.1f}<small> µg/m³</small></div>
+            <span class="kpi-badge">Particules fines</span>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-label">Temperature</span>
+                <div class="kpi-arrow">&#8599;</div>
+            </div>
+            <div class="kpi-value">{latest['temperature_2m']:.1f}<small>°C</small></div>
+            <span class="kpi-badge">Meteo</span>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
-
-kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
-kpi1.metric("EcoTraffic Score", f"{score:.0f}/100")
-kpi2.metric("NO2 actuel", f"{latest[TARGET]:.2f} ug/m3")
-kpi3.metric("Score trafic", f"{traffic_score:.0f}/100", traffic_source)
-kpi4.metric("PM2.5", f"{latest['pm2_5']:.2f} ug/m3")
-kpi5.metric("Temperature", f"{latest['temperature_2m']:.1f} C")
 
 if not traffic_df.empty:
     env_date = filtered_df["datetime"].max().date()

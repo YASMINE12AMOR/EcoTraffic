@@ -37,6 +37,7 @@ services:
       context: .
       dockerfile: airflow/Dockerfile
     container_name: ecotraffic-airflow
+    restart: always
     depends_on:
       mongo:
         condition: service_healthy
@@ -49,13 +50,13 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow_db
+      AIRFLOW__SCHEDULER__HEARTBEAT_SEC: "10"
+      AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: "30"
       AIRFLOW__CORE__PARALLELISM: "4"
       AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "4"
-      # Ton pipeline (trafic)
       MONGODB_URI: mongodb://mongo:27017
       MONGO_DB: ecotraffic
       MONGO_COLLECTION: traffic
-      # Pipeline de ton ami (météo/pollution + Postgres)
       MONGO_URI: mongodb://mongo:27017/ecotraffic
       MONGO_COLLECTION_ENV: weather_pollution
       WEATHER_API_URL: https://api.open-meteo.com/v1/forecast
@@ -64,20 +65,22 @@ services:
       LONGITUDE: "-1.6778"
       POSTGRES_URI: postgresql+psycopg2://postgres:postgres@postgres:5432/ecotraffic
       POSTGRES_TABLE_ENV: environment_features
-      # PYTHONPATH couvre les deux projets Kedro
       PYTHONPATH: /opt/ecotraffic:/opt/ecotraffic/ecotraffic/src:/opt/airflow:/opt/airflow/kedro_preprocessing/src
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
-      # Ton projet monté à la racine attendue par ton DAG
       - ./:/opt/ecotraffic
-      # Projet de ton ami monté aux chemins attendus par son DAG
       - ./kedro_preprocessing:/opt/airflow/kedro_preprocessing
       - ./app:/opt/airflow/app
     ports:
       - "8080:8080"
-    command: standalone
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
 volumes:
   mongo_data:
