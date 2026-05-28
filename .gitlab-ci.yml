@@ -9,12 +9,12 @@ test:
 
   before_script:
     - python -m pip install --upgrade pip
+    - pip install pandas numpy scikit-learn xgboost pytest pymongo mongomock
+        python-dotenv sqlalchemy requests kedro==1.1.1 "kedro-datasets[pandas]"
     - pip install -e "ecotraffic[dev]"
-    - pip install -r airflow/requirements.txt
 
   script:
-    - cd ecotraffic
-    - pytest tests
+    - pytest tests/ -v --tb=short
 
 build:
   stage: build
