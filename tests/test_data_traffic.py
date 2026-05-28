@@ -1,15 +1,9 @@
 """
-Tests de qualité sur les données réelles de trafic.
-Fichier source : ecotraffic/data/03_primary/traffic_cleaned.csv
+Tests de qualite sur les donnees de trafic.
+Utilise un DataFrame simule — pas de fichier CSV requis en CI.
 """
-import os
 import pandas as pd
 import pytest
-
-DATA_PATH = os.path.join(
-    os.path.dirname(__file__), "..",
-    "ecotraffic", "data", "03_primary", "traffic_cleaned.csv"
-)
 
 VALID_STATUTS = {"freeflow", "heavy", "congested", "unknown"}
 VALID_HIERARCHIES = {
@@ -34,7 +28,31 @@ EXPECTED_COLUMNS = [
 
 @pytest.fixture(scope="module")
 def traffic_df():
-    return pd.read_csv(DATA_PATH)
+    data = {
+        "Date/Heure": [
+            "2026-05-28T08:00:00+00:00",
+            "2026-05-28T08:00:00+00:00",
+            "2026-05-28T09:00:00+00:00",
+        ],
+        "Route": ["Avenue de la Gare", "Boulevard de la Liberté", "Rue de Brest"],
+        "Vitesse Moyenne (km/h)": [45.0, 30.0, 60.0],
+        "Vitesse Max (km/h)": [70.0, 50.0, 90.0],
+        "Temps de Trajet (s)": [120.0, 200.0, 80.0],
+        "Fiabilité (%)": [85.0, 72.0, 91.0],
+        "Statut Trafic": ["heavy", "congested", "freeflow"],
+        "Hiérarchie": [
+            "Réseau d'armature",
+            "Réseau de distribution principale",
+            "Réseau d'appui",
+        ],
+        "_id": ["id1", "id2", "id3"],
+        "datetime_hour": [
+            "2026-05-28T08:00:00+00:00",
+            "2026-05-28T08:00:00+00:00",
+            "2026-05-28T09:00:00+00:00",
+        ],
+    }
+    return pd.DataFrame(data)
 
 
 # --- Structure ---
@@ -52,7 +70,7 @@ def test_colonnes_attendues_presentes(traffic_df):
         assert col in traffic_df.columns, f"Colonne manquante : {col}"
 
 
-# --- Qualité des données ---
+# --- Qualite des donnees ---
 
 def test_pas_de_valeurs_nulles_date(traffic_df):
     assert traffic_df["Date/Heure"].isna().sum() == 0
@@ -90,7 +108,7 @@ def test_fiabilite_entre_0_et_100(traffic_df):
     assert traffic_df["Fiabilité (%)"].max() <= 100
 
 
-# --- Valeurs catégorielles ---
+# --- Valeurs categorielles ---
 
 def test_statuts_trafic_valides(traffic_df):
     statuts_observes = set(traffic_df["Statut Trafic"].dropna().unique())
@@ -114,7 +132,7 @@ def test_routes_non_vides(traffic_df):
     assert (traffic_df["Route"].str.strip() != "").all()
 
 
-# --- Cohérence temporelle ---
+# --- Coherence temporelle ---
 
 def test_colonne_datetime_hour_existe(traffic_df):
     assert "datetime_hour" in traffic_df.columns
