@@ -5,3 +5,7 @@ raw_env_df:
 preprocessed_env_df:
   type: pandas.CSVDataset
   filepath: data/02_intermediate/preprocessed_env_df.csv
+
+traffic_cleaned_df:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/traffic_cleaned.csv

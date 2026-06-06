@@ -78,3 +78,29 @@ def save_env_to_postgres(df: pd.DataFrame) -> None:
     df.to_sql(postgres_table, engine, if_exists="replace", index=False)
 
     print(f"{len(df)} lignes écrites dans PostgreSQL -> table {postgres_table}")
+
+
+def save_traffic_to_postgres(df: pd.DataFrame) -> None:
+    if df.empty:
+        print("Aucune donnée trafic à écrire dans PostgreSQL.")
+        return
+
+    postgres_uri = os.getenv("POSTGRES_URI")
+    postgres_table = os.getenv("POSTGRES_TABLE_TRAFFIC", "traffic_features")
+
+    df = df.copy()
+
+    if "Date/Heure" in df.columns:
+        df["Date/Heure"] = pd.to_datetime(df["Date/Heure"], utc=True, errors="coerce")
+
+    for col in ["Vitesse Moyenne (km/h)", "Vitesse Max (km/h)", "Temps de Trajet (s)", "Fiabilité (%)"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    if "Statut Trafic" in df.columns:
+        df["Statut Trafic"] = df["Statut Trafic"].astype(str).str.lower().str.strip()
+
+    engine = create_engine(postgres_uri)
+    df.to_sql(postgres_table, engine, if_exists="append", index=False)
+
+    print(f"{len(df)} lignes écrites dans PostgreSQL -> table {postgres_table}")

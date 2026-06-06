@@ -54,6 +54,7 @@ services:
       MONGO_URI: mongodb://mongo:27017/ecotraffic
       POSTGRES_URI: postgresql://postgres:postgres@postgres:5432/ecotraffic
       POSTGRES_TABLE_ENV: environment_features
+      POSTGRES_TABLE_TRAFFIC: traffic_features
       SUPABASE_DB_URI: ${SUPABASE_DB_URI}
     volumes:
       - airflow_home:/opt/airflow

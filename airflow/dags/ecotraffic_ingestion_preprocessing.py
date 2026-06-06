@@ -106,12 +106,42 @@ def ecotraffic_ingestion_preprocessing():
         print(f"Data quality OK:\n{json.dumps(report, indent=2)}")
         return json.dumps(report)
 
+    @task(task_id="load_traffic_to_postgres", retries=2, retry_delay=timedelta(minutes=1))
+    def load_traffic_to_postgres() -> str:
+        import os
+        import pandas as pd
+        from sqlalchemy import create_engine
+
+        postgres_uri = os.getenv("POSTGRES_URI")
+        if not postgres_uri:
+            raise ValueError("POSTGRES_URI manquant dans les variables d'environnement")
+
+        df = pd.read_csv(str(OUTPUT_FILE))
+        if df.empty:
+            print("traffic_cleaned.csv vide, rien à insérer.")
+            return "empty"
+
+        df["Date/Heure"] = pd.to_datetime(df["Date/Heure"], utc=True, errors="coerce")
+        for col in ["Vitesse Moyenne (km/h)", "Vitesse Max (km/h)", "Temps de Trajet (s)", "Fiabilité (%)"]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+        if "Statut Trafic" in df.columns:
+            df["Statut Trafic"] = df["Statut Trafic"].astype(str).str.lower().str.strip()
+
+        table = os.getenv("POSTGRES_TABLE_TRAFFIC", "traffic_features")
+        engine = create_engine(postgres_uri)
+        df.to_sql(table, engine, if_exists="append", index=False)
+
+        print(f"{len(df)} lignes insérées dans PostgreSQL -> table {table}")
+        return f"{len(df)} lignes insérées dans {table}"
+
     raw_ingestion = load_raw_data_into_mongodb()
     kedro_preprocessing = run_kedro_preprocessing()
     output_validation = validate_kedro_output()
     quality_check = monitor_data_quality()
+    traffic_to_pg = load_traffic_to_postgres()
 
-    raw_ingestion >> kedro_preprocessing >> output_validation >> quality_check
+    raw_ingestion >> kedro_preprocessing >> output_validation >> quality_check >> traffic_to_pg
 
 
 ecotraffic_ingestion_preprocessing()

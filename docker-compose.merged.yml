@@ -65,6 +65,7 @@ services:
       LONGITUDE: "-1.6778"
       POSTGRES_URI: postgresql+psycopg2://postgres:postgres@postgres:5432/ecotraffic
       POSTGRES_TABLE_ENV: environment_features
+      POSTGRES_TABLE_TRAFFIC: traffic_features
       PYTHONPATH: /opt/ecotraffic:/opt/ecotraffic/ecotraffic/src:/opt/airflow:/opt/airflow/kedro_preprocessing/src
     volumes:
       - ./airflow/dags:/opt/airflow/dags
