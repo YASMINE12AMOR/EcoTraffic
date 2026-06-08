@@ -73,6 +73,8 @@ Projet de Data Engineering et Machine Learning collectant des données de **traf
 │    load_raw_data_into_mongodb                                   │
 │    → run_kedro_preprocessing                                    │
 │    → validate_kedro_output                                      │
+│    → quality_check                                              │
+│    → load_traffic_to_postgres   ← traffic_features (PostgreSQL) │
 │                                                                 │
 │  DAG ecotraffic_full_pipeline            →  @daily              │
 │    extract_to_mongo                                             │
@@ -95,6 +97,16 @@ Projet de Data Engineering et Machine Learning collectant des données de **traf
 │                 EcoTraffic Score             [A FAIRE]          │
 │           (Rouge / Orange / Vert par zone)                      │
 └─────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     DASHBOARD (Streamlit)                       │
+│                                                                 │
+│  - KPIs : EcoTraffic Score, vitesse moyenne, qualité air        │
+│  - Graphiques trafic et environnement                           │
+│  - Refresh automatique toutes les heures                        │
+│  - Design inspiré Donezo (dark green featured card)             │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -103,15 +115,17 @@ Projet de Data Engineering et Machine Learning collectant des données de **traf
 
 | Couche | Outil | Rôle |
 |---|---|---|
-| Langage | Python 3 | — |
+| Langage | Python 3.11 | — |
 | Extraction | `requests` | Appels API REST |
 | Transformation | Pandas + **Kedro** | Nettoyage, features engineering |
-| Stockage brut | **MongoDB** | Collections NoSQL (trafic + météo) |
-| Stockage final | **PostgreSQL** | Table `environment_features` |
+| Stockage brut | **MongoDB** | Collections NoSQL (trafic + météo/pollution) |
+| Stockage final | **PostgreSQL** | Tables `environment_features` + `traffic_features` |
 | Orchestration | **Apache Airflow** | 2 DAGs (horaire + quotidien) |
-| Conteneurisation | **Docker** | `docker-compose.yml` |
-| Tests | Pytest | Tests unitaires et d'intégration |
+| Conteneurisation | **Docker** + `docker-compose.merged.yml` | MongoDB + PostgreSQL + Airflow |
+| Tests | **Pytest** | 107 tests unitaires et d'intégration |
 | ML | **XGBoost** + scikit-learn + matplotlib | Modèle NO2 entraîné et visualisé |
+| Dashboard | **Streamlit** | Visualisation KPIs + graphiques temps réel |
+| CI/CD | **GitLab CI** | Build → Test → Deploy |
 
 ---
 
@@ -146,7 +160,7 @@ EcoTraffic/
 ├── kedro_preprocessing/              # Pipeline Kedro — environnement
 │   ├── src/ecotraffic_kedro/pipelines/
 │   │   └── preprocessing/
-│   │       ├── nodes.py              # Nettoyage météo + pollution
+│   │       ├── nodes.py              # Nettoyage météo + pollution + save PostgreSQL
 │   │       └── pipeline.py           # Définition du pipeline Kedro
 │   └── data/
 │       ├── 01_raw/raw_env_df.csv
@@ -155,6 +169,7 @@ EcoTraffic/
 ├── airflow/
 │   └── dags/
 │       ├── ecotraffic_ingestion_preprocessing.py   # DAG trafic (@hourly)
+│       │                                           # → load_traffic_to_postgres
 │       └── etl_orchestration.py                    # DAG env (@daily)
 │
 ├── ml/                               # Machine Learning
@@ -164,19 +179,22 @@ EcoTraffic/
 │       ├── env_no2_model.pkl         # Modèle entraîné (sauvegardé)
 │       └── env_model_results.png     # Graphiques des résultats
 │
-├── tests/                            # Tests automatiques
-│   ├── test_data_traffic.py          # Qualité données trafic réelles
-│   ├── test_data_env.py              # Qualité données météo+pollution réelles
+├── tests/                            # Tests automatiques (107 tests)
+│   ├── test_data_traffic.py          # Qualité données trafic
+│   ├── test_data_env.py              # Qualité données météo+pollution
 │   ├── test_env_model.py             # Tests du modèle ML (19 tests)
 │   ├── test_merge.py                 # Tests fusion météo+pollution
 │   ├── test_traffic_nodes.py         # Tests pipeline trafic Kedro
 │   ├── test_env_nodes.py             # Tests pipeline environnement Kedro
+│   ├── test_postgres_nodes.py        # Tests chargement PostgreSQL + extraction MongoDB
 │   ├── test_extract.py               # Tests extraction APIs
 │   └── test_load.py                  # Tests chargement MongoDB
 │
+├── streamlit_app.py                  # Dashboard de visualisation
 ├── .env                              # Variables d'environnement
+├── .gitlab-ci.yml                    # CI/CD : Build → Test → Deploy
 ├── pytest.ini                        # Configuration pytest
-├── docker-compose.yml                # MongoDB + PostgreSQL + Airflow
+├── docker-compose.merged.yml         # Stack complète (recommandé)
 ├── requirements.txt
 └── README.md
 ```
@@ -185,7 +203,7 @@ EcoTraffic/
 
 ## Données disponibles
 
-### Trafic (traffic_cleaned.csv)
+### Trafic (traffic_cleaned.csv → PostgreSQL `traffic_features`)
 
 | Colonne | Description |
 |---|---|
@@ -199,7 +217,7 @@ EcoTraffic/
 | `Hiérarchie` | Type de réseau routier |
 | `datetime_hour` | Heure arrondie (clé de jointure) |
 
-### Environnement (preprocessed_env_df.csv)
+### Environnement (PostgreSQL `environment_features`)
 
 | Colonne | Description |
 |---|---|
@@ -212,7 +230,6 @@ EcoTraffic/
 | `ozone` | O3 en µg/m³ |
 | `hour` / `day_of_week` / `is_weekend` | Features temporelles |
 | `rain_flag` | 1 si précipitations > 0 |
-
 
 ---
 
@@ -233,36 +250,13 @@ Prédire le taux de **dioxyde d'azote (NO₂)** à Rennes en µg/m³ à partir d
 
 ### Justification du choix — XGBoost
 
-**XGBoost a été choisi pour 5 raisons :**
-
 | Raison | Explication |
 |---|---|
-| **Petit dataset** | 120 lignes seulement. XGBoost intègre une régularisation L1/L2 qui évite l'overfitting. Les réseaux de neurones (LSTM) nécessitent des milliers d'exemples. |
-| **Features hétérogènes** | Le dataset mélange continu (température, vent), entiers (heure, jour) et binaires (rain_flag). XGBoost ne nécessite aucune normalisation, contrairement à la régression linéaire ou SVR. |
-| **Relations non-linéaires** | Le NO2 ne varie pas linéairement avec l'heure (pics aux heures de pointe) ni avec la pluie. XGBoost capture ces interactions automatiquement via ses arbres de décision. |
-| **Interprétabilité** | Fournit nativement l'importance des features (CO = 55%, ozone = 34%), essentiel pour justifier les prédictions dans un projet environnemental. |
-| **Rapidité** | Entraînement en < 1 seconde, ce qui permet de ré-entraîner à chaque nouvelle collecte sans coût computationnel. |
-
-**Alternatives écartées :**
-
-| Modèle | Raison du rejet |
-|---|---|
-| Régression linéaire | Relations non-linéaires dans les données → sous-ajustement |
-| Random Forest | Moins efficace que XGBoost sur petits datasets (variance élevée) |
-| LSTM | Nécessite beaucoup plus de données temporelles séquentielles |
-| SVR | Sensible à la normalisation et plus long à calibrer |
-
-### Features utilisées
-
-| Feature | Rôle |
-|---|---|
-| `carbon_monoxide` | Même source que NO2 (combustion) — 55.5% d'importance |
-| `ozone` | Réaction chimique directe avec NO2 — 34.4% |
-| `hour` | Heures de pointe vs nuit |
-| `day_of_week` | Lundi (rush) vs dimanche |
-| `temperature_2m` | Dispersion verticale des polluants |
-| `wind_speed_10m` | Dispersion horizontale |
-| `precipitation` / `rain_flag` | Nettoyage de l'air par la pluie |
+| **Petit dataset** | 120 lignes seulement. XGBoost intègre une régularisation L1/L2 qui évite l'overfitting. |
+| **Features hétérogènes** | Mélange continu, entiers et binaires — aucune normalisation requise. |
+| **Relations non-linéaires** | Pics NO2 aux heures de pointe non capturables par une régression linéaire. |
+| **Interprétabilité** | Importance des features native (CO = 55%, ozone = 34%). |
+| **Rapidité** | Entraînement en < 1 seconde, ré-entraînable à chaque collecte. |
 
 ### Résultats
 
@@ -272,14 +266,25 @@ Prédire le taux de **dioxyde d'azote (NO₂)** à Rennes en µg/m³ à partir d
 | **MAE** | 0.587 µg/m³ | Erreur moyenne de 0.6 µg/m³ |
 | **RMSE** | 0.886 µg/m³ | Erreur quadratique |
 
-### Fichiers
+---
 
-| Fichier | Rôle |
-|---|---|
-| `ml/env_model.py` | Entraînement, évaluation, prédiction |
-| `ml/env_model_viz.py` | Visualisation des résultats (4 graphiques) |
-| `ml/models/env_no2_model.pkl` | Modèle sérialisé |
-| `ml/models/env_model_results.png` | Graphiques sauvegardés |
+## CI/CD — GitLab
+
+Le pipeline CI/CD suit l'ordre **Build → Test → Deploy** :
+
+```
+build  →  construit l'image Docker (airflow/Dockerfile)
+  ↓         et sauvegarde l'artifact (image.tar.gz)
+test   →  installe les dépendances Python et lance pytest
+  ↓         107 tests doivent passer pour continuer
+deploy →  déploiement manuel sur EC2 (uniquement sur main)
+```
+
+| Stage | Déclencheur | Image |
+|---|---|---|
+| `build` | Chaque push | `docker:latest` |
+| `test` | Après build réussi | `python:3.11` |
+| `deploy` | Manuel, branche `main` uniquement | `alpine:latest` |
 
 ---
 
@@ -293,23 +298,41 @@ Prédire le taux de **dioxyde d'azote (NO₂)** à Rennes en µg/m³ à partir d
 | Transformation Kedro — trafic | Fait |
 | Transformation Kedro — environnement | Fait |
 | Fusion météo + pollution | Fait |
-| Stockage MongoDB | Fait |
-| Stockage PostgreSQL | Fait |
-| DAG Airflow trafic (@hourly) | Fait |
+| Stockage MongoDB (trafic + environnement) | Fait |
+| Stockage PostgreSQL `environment_features` | Fait |
+| Stockage PostgreSQL `traffic_features` | Fait |
+| DAG Airflow trafic (@hourly) + injection PostgreSQL | Fait |
 | DAG Airflow environnement (@daily) | Fait |
-| Tests automatiques (99 tests) | Fait |
+| Tests automatiques (107 tests) | Fait |
 | Conteneurisation Docker | Fait |
+| CI/CD GitLab (Build → Test → Deploy) | Fait |
 | **Modèle ML environnement (NO2)** | **Fait** |
+| **Dashboard Streamlit** | **Fait** |
 | Fusion trafic + environnement | En cours |
 | Modèle ML trafic | A faire |
 | EcoTraffic Score combiné | A faire |
-| Dashboard de visualisation | A faire |
 
 ---
 
 ## Lancer le projet
 
-### En local
+### Avec Docker et Airflow (recommandé)
+
+```bash
+docker compose -f docker-compose.merged.yml up --build
+```
+
+Interface Airflow : `http://localhost:8080`  
+Identifiants : `admin` / `admin123`
+
+### Dashboard Streamlit
+
+```bash
+pip install streamlit
+streamlit run streamlit_app.py
+```
+
+### En local (sans Docker)
 
 ```bash
 # Pipeline environnement (météo + pollution)
@@ -324,21 +347,9 @@ kedro run --pipeline data_processing
 ### Modèle ML — Prédiction NO2
 
 ```bash
-# Entraîner le modèle et afficher les métriques
 python ml/env_model.py
-
-# Visualiser les résultats (graphiques)
 python ml/env_model_viz.py
 ```
-
-### Avec Docker et Airflow
-
-```bash
-docker compose up --build
-```
-
-Interface Airflow : `http://localhost:8080`  
-Identifiants : `admin` / `admin123`
 
 ---
 
@@ -346,12 +357,15 @@ Identifiants : `admin` / `admin123`
 
 ```env
 # MongoDB
-MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/ecotraffic
+MONGO_URI=mongodb://mongo:27017/ecotraffic
 MONGO_DB=ecotraffic
-MONGO_COLLECTION=weather_pollution
+MONGO_COLLECTION=traffic
+MONGO_COLLECTION_ENV=weather_pollution
 
 # PostgreSQL
 POSTGRES_URI=postgresql+psycopg2://postgres:postgres@postgres:5432/ecotraffic
+POSTGRES_TABLE_ENV=environment_features
+POSTGRES_TABLE_TRAFFIC=traffic_features
 
 # APIs
 WEATHER_API_URL=https://api.open-meteo.com/v1/forecast
@@ -371,16 +385,16 @@ LONGITUDE=-1.6778
 
 ```bash
 # Tous les tests
-python -m pytest tests/ -v
+pytest tests/ -v --tb=short
 
-# Uniquement les tests sur les données réelles
-python -m pytest tests/test_data_traffic.py tests/test_data_env.py -v
+# Un fichier précis
+pytest tests/test_postgres_nodes.py -v
 
 # Arrêter au premier échec
-python -m pytest tests/ -v -x
+pytest tests/ -v -x
 ```
 
-Résultat attendu : **99 passed**
+Résultat attendu : **107 passed**
 
 ---
 
@@ -388,37 +402,15 @@ Résultat attendu : **99 passed**
 
 | Fichier | Tests | Ce qui est testé |
 |---|---|---|
-| `tests/test_data_traffic.py` | 17 | Qualité des données réelles trafic (traffic_cleaned.csv) |
-| `tests/test_data_env.py` | 22 | Qualité des données réelles météo + pollution (preprocessed_env_df.csv) |
-| `tests/test_env_model.py` | 19 | Modèle ML : chargement, entraînement, métriques, prédiction, sauvegarde |
-| `tests/test_merge.py` | 13 | Fusion météo + pollution, flags, erreurs |
-| `tests/test_traffic_nodes.py` | 14 | Parsing et nettoyage des données trafic |
-| `tests/test_env_nodes.py` | 11 | Preprocessing des données environnement |
-| `tests/test_extract.py` | 2 | Extraction météo et pollution (mocks HTTP) |
-| `tests/test_load.py` | 1 | Chargement MongoDB |
-
-### Tests sur les données réelles
-
-**Trafic (`test_data_traffic.py`) :**
-- Fichier chargeable, 356 lignes, 10 colonnes présentes
-- Pas de valeurs nulles sur Date/Heure, Route, Vitesse
-- Pas de doublons
-- Vitesse Moyenne entre 0 et 130 km/h
-- Statuts valides (`freeflow`, `heavy`, `congested`, `unknown`) et en minuscules
-- Hiérarchies connues, routes non vides
-- `datetime_hour` cohérent avec `Date/Heure`
-
-**Météo + Pollution (`test_data_env.py`) :**
-- Fichier chargeable, 120 lignes, 18 colonnes présentes
-- Pas de nulls ni doublons sur `datetime`
-- Données triées chronologiquement
-- Température entre -10°C et 50°C
-- PM2.5, PM10, NO2, ozone tous ≥ 0
-- `wind_kmh = wind_speed_10m × 3.6`
-- `high_pm2_5` cohérent avec seuil OMS (25 µg/m³)
-- `high_pm10` cohérent avec seuil OMS (50 µg/m³)
-- `rain_flag` et `is_weekend` binaires
-- `month` cohérent avec `datetime`
+| `test_data_traffic.py` | 17 | Qualité des données trafic (colonnes, plages, statuts, cohérence temporelle) |
+| `test_data_env.py` | 22 | Qualité des données météo + pollution (nulls, doublons, plages, flags) |
+| `test_env_model.py` | 19 | Modèle ML : chargement, entraînement, métriques, prédiction, sauvegarde |
+| `test_merge.py` | 13 | Fusion météo + pollution, flags, cas d'erreur |
+| `test_traffic_nodes.py` | 14 | Parsing et nettoyage des données trafic Kedro |
+| `test_env_nodes.py` | 11 | Preprocessing des données environnement Kedro |
+| `test_postgres_nodes.py` | 8 | Chargement PostgreSQL (trafic + env) + extraction MongoDB (mocks) |
+| `test_extract.py` | 2 | Extraction météo et pollution (mocks HTTP) |
+| `test_load.py` | 1 | Chargement MongoDB |
 
 ---
 
