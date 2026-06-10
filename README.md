@@ -86,15 +86,12 @@ Projet de Data Engineering et Machine Learning collectant des données de **traf
 ┌─────────────────────────────────────────────────────────────────┐
 │                     MACHINE LEARNING                            │
 │                                                                 │
-│  Modèle Environnement              [FAIT]                       │
+│  Modèle Environnement                                           │
 │  - target : nitrogen_dioxide (NO₂)                              │
 │  - algo   : XGBoost Regression                                  │
 │  - R² = 0.758 / MAE = 0.587 µg/m³                              │
 │         ↓                                                       │
 │  pollution_score (NO2 µg/m³)                                    │
-│                                                                 │
-│  Modèle Trafic                     [A FAIRE]                    │
-│  EcoTraffic Score combiné          [A FAIRE]                    │
 └─────────────────────────────────────────────────────────────────┘
          │
          ▼
