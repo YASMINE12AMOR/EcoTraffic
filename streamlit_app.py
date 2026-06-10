@@ -280,6 +280,21 @@ st.markdown(
         background: #FFFFFF !important; border-color: var(--border) !important;
         color: var(--text) !important; border-radius: var(--radius-sm) !important;
     }
+
+    /* ── Multiselect tags ── */
+    [data-baseweb="tag"] {
+        background-color: var(--green-light) !important;
+        border: 1px solid rgba(12,175,109,0.30) !important;
+        border-radius: 6px !important;
+    }
+    [data-baseweb="tag"] span {
+        color: var(--green-dark) !important;
+        font-weight: 600 !important;
+        font-size: 12px !important;
+    }
+    [data-baseweb="tag"] [role="presentation"] {
+        color: var(--green-dark) !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
