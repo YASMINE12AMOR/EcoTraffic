@@ -52,6 +52,6 @@ deploy:
     - ssh "$EC2_USER@$EC2_HOST" "
         cd ecotraffic &&
         git pull origin main &&
-        docker compose -f docker-compose.airflow.yml down &&
-        docker compose -f docker-compose.airflow.yml up -d --build
+        docker compose -f docker-compose.merged.yml down &&
+        docker compose -f docker-compose.merged.yml up -d --build
       "
