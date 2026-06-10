@@ -9,8 +9,8 @@ Projet de Data Engineering et Machine Learning collectant des données de **traf
 - Collecter en temps réel les données trafic, météo et pollution via des APIs
 - Nettoyer, transformer et stocker les données dans des bases structurées
 - Automatiser l'exécution du pipeline avec Apache Airflow
-- Appliquer des modèles ML pour prédire le comportement du trafic et la qualité de l'air
-- Combiner les prédictions pour produire un **EcoTraffic Score** par zone de Rennes
+- Appliquer un modèle ML pour prédire la qualité de l'air (NO₂)
+- Poser les bases d'un **EcoTraffic Score** combinant trafic et environnement (en cours)
 
 ---
 
@@ -86,16 +86,15 @@ Projet de Data Engineering et Machine Learning collectant des données de **traf
 ┌─────────────────────────────────────────────────────────────────┐
 │                     MACHINE LEARNING                            │
 │                                                                 │
-│  Modèle Trafic [A FAIRE]          Modèle Environnement [FAIT]   │
-│  - target : Statut Trafic         - target : nitrogen_dioxide   │
-│  - algo   : Random Forest         - algo   : XGBoost Regression │
-│             XGBoost               - R² = 0.758 / MAE = 0.587   │
-│         ↓                                     ↓                 │
-│    congestion_score               pollution_score (NO2 µg/m³)   │
-│         └──────────────┬──────────────────────┘                 │
-│                        ▼                                        │
-│                 EcoTraffic Score             [A FAIRE]          │
-│           (Rouge / Orange / Vert par zone)                      │
+│  Modèle Environnement              [FAIT]                       │
+│  - target : nitrogen_dioxide (NO₂)                              │
+│  - algo   : XGBoost Regression                                  │
+│  - R² = 0.758 / MAE = 0.587 µg/m³                              │
+│         ↓                                                       │
+│  pollution_score (NO2 µg/m³)                                    │
+│                                                                 │
+│  Modèle Trafic                     [A FAIRE]                    │
+│  EcoTraffic Score combiné          [A FAIRE]                    │
 └─────────────────────────────────────────────────────────────────┘
          │
          ▼
@@ -190,12 +189,21 @@ EcoTraffic/
 │   ├── test_extract.py               # Tests extraction APIs
 │   └── test_load.py                  # Tests chargement MongoDB
 │
+├── monitoring/
+│   └── prometheus.yml                # Config Prometheus + cAdvisor (monitoring Docker)
+│
+├── scripts/
+│   └── build_traffic_cleaned.py      # Bypass API → CSV direct (sans MongoDB)
+│
 ├── streamlit_app.py                  # Dashboard de visualisation
-├── .env                              # Variables d'environnement
+├── .env                              # Variables d'environnement (à créer manuellement)
 ├── .gitlab-ci.yml                    # CI/CD : Build → Test → Deploy
 ├── pytest.ini                        # Configuration pytest
-├── docker-compose.merged.yml         # Stack complète (recommandé)
-├── requirements.txt
+├── docker-compose.merged.yml         # Stack complète recommandée (LocalExecutor)
+├── docker-compose.airflow.yml        # Ancienne stack (déprécié — SequentialExecutor)
+├── requirements.txt                  # Dépendances Python principales
+├── requirements-airflow.txt          # Dépendances Airflow
+├── requirements-dashboard.txt        # Dépendances Streamlit
 └── README.md
 ```
 
@@ -308,7 +316,7 @@ deploy →  déploiement manuel sur EC2 (uniquement sur main)
 | CI/CD GitLab (Build → Test → Deploy) | Fait |
 | **Modèle ML environnement (NO2)** | **Fait** |
 | **Dashboard Streamlit** | **Fait** |
-| Fusion trafic + environnement | En cours |
+| Fusion trafic + environnement | A faire |
 | Modèle ML trafic | A faire |
 | EcoTraffic Score combiné | A faire |
 
