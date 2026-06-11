@@ -283,17 +283,17 @@ st.markdown(
 
     /* ── Multiselect tags ── */
     [data-baseweb="tag"] {
-        background-color: var(--green-light) !important;
-        border: 1px solid rgba(12,175,109,0.30) !important;
+        background-color: var(--green-dark) !important;
+        border: none !important;
         border-radius: 6px !important;
     }
     [data-baseweb="tag"] span {
-        color: var(--green-dark) !important;
+        color: #FFFFFF !important;
         font-weight: 600 !important;
         font-size: 12px !important;
     }
     [data-baseweb="tag"] [role="presentation"] {
-        color: var(--green-dark) !important;
+        color: #FFFFFF !important;
     }
     </style>
     """,
@@ -745,7 +745,7 @@ if not traffic_df.empty:
             "Le dashboard utilise le trafic reel le plus recent pour le score global."
         )
 
-tab_control, tab_traffic, tab_map, tab_model, tab_predict, tab_report, tab_mvp, tab_data, tab_arch = st.tabs(
+tab_control, tab_traffic, tab_map, tab_model, tab_predict, tab_report, tab_data = st.tabs(
     [
         "Command Center",
         "Trafic",
@@ -753,9 +753,7 @@ tab_control, tab_traffic, tab_map, tab_model, tab_predict, tab_report, tab_mvp, 
         "Modele ML",
         "Simulation",
         "Rapport",
-        "MVP",
         "Donnees",
-        "Architecture",
     ]
 )
 
@@ -777,7 +775,7 @@ with tab_control:
             """
             <div class="small-card">
                 <strong>Formule du score</strong>
-                <span>EcoTraffic Score = 62% pollution + 38% trafic. Le trafic reel est utilise si traffic_cleaned.csv est disponible.</span>
+                <span>EcoTraffic Score = 62% pollution + 38% trafic.</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -903,32 +901,12 @@ with tab_traffic:
         t5.metric("Maj trafic", traffic_last)
 
         hourly_traffic = compute_traffic_score(traffic_view)
-        left, right = st.columns([1.25, 1])
-
-        with left:
-            fig_speed = px.line(
-                traffic_view.groupby("datetime_hour", as_index=False)
-                .agg(avg_speed=("Vitesse Moyenne (km/h)", "mean")),
-                x="datetime_hour",
-                y="avg_speed",
-                markers=True,
-                labels={"datetime_hour": "Heure", "avg_speed": "Vitesse moyenne (km/h)"},
+        
+        if not hourly_traffic.empty:
+            st.plotly_chart(
+                gauge("Score trafic reel", float(hourly_traffic["traffic_real_score"].iloc[-1])),
+                use_container_width=True,
             )
-            fig_speed.update_layout(
-                height=360,
-                margin=dict(l=8, r=8, t=12, b=8),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="#FFFFFF",
-                font=dict(color="#111827"),
-            )
-            st.plotly_chart(fig_speed, use_container_width=True)
-
-        with right:
-            if not hourly_traffic.empty:
-                st.plotly_chart(
-                    gauge("Score trafic reel", float(hourly_traffic["traffic_real_score"].iloc[-1])),
-                    use_container_width=True,
-                )
 
         status_counts = (
             traffic_view["Statut Trafic"]
@@ -1338,66 +1316,6 @@ with tab_report:
                 use_container_width=True,
             )
 
-with tab_mvp:
-    st.subheader("Conformite MVP")
-    st.markdown(
-        """
-        <div class="small-card">
-            <strong>Objectif du MVP</strong>
-            <span>Montrer une chaine data complete pour la mobilite urbaine: collecte, transformation, modele predictif, visualisation et aide a la decision.</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    mvp1, mvp2, mvp3, mvp4 = st.columns(4)
-    mvp1.metric("Pipeline data", "OK")
-    mvp2.metric("Open data", "3 sources")
-    mvp3.metric("Dashboard", "Interactif")
-    mvp4.metric("Modele ML", "NO2")
-
-    checklist_left, checklist_right = st.columns(2)
-    with checklist_left:
-        st.subheader("Attendus couverts")
-        covered_items = [
-            "Collecte de donnees ouvertes: trafic, meteo, pollution.",
-            "Nettoyage et preparation des donnees.",
-            "Integration trafic reel Rennes avec coordonnees GPS.",
-            "Modele predictif operationnel pour le NO2.",
-            "Dashboard interactif avec carte, filtres et exports.",
-            "Rapport decisionnel automatique.",
-        ]
-        for item in covered_items:
-            st.markdown(
-                f"""
-                <div class="small-card">
-                    <strong>OK</strong>
-                    <span>{item}</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-    with checklist_right:
-        st.subheader("Perspectives")
-        next_items = [
-            "Predire le trafic avec un historique plus long.",
-            "Colorer les geometries completes des routes sur la carte.",
-            "Synchroniser automatiquement trafic et environnement sur la meme fenetre temporelle.",
-            "Ajouter une API ou une application citoyenne.",
-            "Industrialiser le deploiement avec CI/CD complet.",
-        ]
-        for item in next_items:
-            st.markdown(
-                f"""
-                <div class="small-card">
-                    <strong>Evolution</strong>
-                    <span>{item}</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
 with tab_data:
     st.subheader("Qualite et couverture des donnees")
     d1, d2, d3, d4 = st.columns(4)
@@ -1437,71 +1355,3 @@ with tab_data:
         st.plotly_chart(fig_corr, use_container_width=True)
 
     st.dataframe(filtered_df.tail(30), use_container_width=True, hide_index=True)
-
-with tab_arch:
-    st.subheader("Architecture cible")
-    st.markdown(
-        """
-        <div class="small-card">
-            <strong>Flux de bout en bout</strong>
-            <span>APIs Rennes/Open-Meteo -> MongoDB -> Kedro -> CSV/PostgreSQL -> Modele ML -> Dashboard Streamlit</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    fig_arch = go.Figure()
-    nodes = [
-        ("APIs", 0.05, 0.65),
-        ("MongoDB", 0.23, 0.65),
-        ("Kedro", 0.41, 0.65),
-        ("PostgreSQL / CSV", 0.61, 0.65),
-        ("XGBoost", 0.79, 0.78),
-        ("Streamlit", 0.79, 0.50),
-    ]
-    for label, x, y in nodes:
-        fig_arch.add_trace(
-            go.Scatter(
-                x=[x],
-                y=[y],
-                mode="markers+text",
-                marker=dict(size=58, color="#0CAF6D", line=dict(width=2, color="#FFFFFF")),
-                text=[label],
-                textposition="bottom center",
-                textfont=dict(color="#111827", size=14),
-                hoverinfo="skip",
-            )
-        )
-    arrows = [(0.10, 0.20), (0.28, 0.38), (0.47, 0.57), (0.67, 0.75), (0.67, 0.75)]
-    y_pairs = [(0.65, 0.65), (0.65, 0.65), (0.65, 0.65), (0.66, 0.76), (0.63, 0.52)]
-    for (x0, x1), (y0, y1) in zip(arrows, y_pairs):
-        fig_arch.add_annotation(
-            x=x1,
-            y=y1,
-            ax=x0,
-            ay=y0,
-            xref="x",
-            yref="y",
-            axref="x",
-            ayref="y",
-            showarrow=True,
-            arrowhead=3,
-            arrowsize=1.3,
-            arrowwidth=2,
-            arrowcolor="#2563EB",
-        )
-    fig_arch.update_layout(
-        height=360,
-        xaxis=dict(visible=False, range=[0, 1]),
-        yaxis=dict(visible=False, range=[0.35, 0.9]),
-        margin=dict(l=20, r=20, t=20, b=20),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="#FFFFFF",
-        showlegend=False,
-    )
-    st.plotly_chart(fig_arch, use_container_width=True)
-
-    a1, a2, a3 = st.columns(3)
-    a1.markdown('<div class="small-card"><strong>Ce qui est branche</strong><span>Donnees environnement, donnees trafic CSV, modele NO2, visualisations et simulation.</span></div>', unsafe_allow_html=True)
-    a2.markdown('<div class="small-card"><strong>Evolution possible</strong><span>Ajouter les geometries exactes des routes pour colorer les axes sur la carte.</span></div>', unsafe_allow_html=True)
-    a3.markdown('<div class="small-card"><strong>Message soutenance</strong><span>Le socle data/ML est pret, la couche dashboard rend le projet lisible et decisionnel.</span></div>', unsafe_allow_html=True)
