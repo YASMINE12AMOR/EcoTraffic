@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 def merge_and_save(weather_df, pollution_df):
     df = pd.merge(weather_df, pollution_df, on="datetime", how="inner")
 

@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 def fetch_weather():
     url = os.getenv("WEATHER_API_URL")
     lat = os.getenv("LATITUDE")

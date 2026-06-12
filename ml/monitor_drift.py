@@ -4,13 +4,11 @@ Compares current data distribution against training reference stats.
 Saves a JSON report to ml/models/drift_report.json.
 """
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from ml.env_model import load_data, load_model, FEATURES, TARGET

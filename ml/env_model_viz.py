@@ -3,13 +3,13 @@ Visualisation des résultats du modèle NO2.
 Lancer : python ml/env_model_viz.py
 """
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
+import sys
+from pathlib import Path
 
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import matplotlib.pyplot as plt
+import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ml.env_model import (
     FEATURES,
@@ -72,15 +72,15 @@ ax4 = axes[1, 1]
 heures = list(range(24))
 base = {
     "temperature_2m": 15.0, "precipitation": 0.0,
-    "wind_speed_10m": 5.0,  "wind_kmh": 18.0,
-    "rain_flag": 0,         "carbon_monoxide": 140.0,
-    "ozone": 65.0,          "day_of_week": 0,
-    "is_weekend": 0,        "month": 5,
+    "wind_speed_10m": 5.0, "wind_kmh": 18.0,
+    "rain_flag": 0, "carbon_monoxide": 140.0,
+    "ozone": 65.0, "day_of_week": 0,
+    "is_weekend": 0, "month": 5,
 }
 scenarios = {
     "Lundi (jour de semaine)": {**base, "day_of_week": 0, "is_weekend": 0},
-    "Samedi (weekend)":        {**base, "day_of_week": 5, "is_weekend": 1},
-    "Jour de pluie":           {**base, "day_of_week": 0, "precipitation": 1.5, "rain_flag": 1},
+    "Samedi (weekend)": {**base, "day_of_week": 5, "is_weekend": 1},
+    "Jour de pluie": {**base, "day_of_week": 0, "precipitation": 1.5, "rain_flag": 1},
 }
 colors_sc = ["#1976D2", "#FF9800", "#4CAF50"]
 for (label, params), color in zip(scenarios.items(), colors_sc):

@@ -97,9 +97,9 @@ def train(df: pd.DataFrame) -> tuple:
 def evaluate(model, X_test, y_test) -> dict:
     y_pred = model.predict(X_test)
     return {
-        "MAE":  round(mean_absolute_error(y_test, y_pred), 3),
+        "MAE": round(mean_absolute_error(y_test, y_pred), 3),
         "RMSE": round(np.sqrt(mean_squared_error(y_test, y_pred)), 3),
-        "R2":   round(r2_score(y_test, y_pred), 3),
+        "R2": round(r2_score(y_test, y_pred), 3),
     }
 
 
@@ -109,14 +109,14 @@ def cross_validate(model, df: pd.DataFrame) -> dict:
     scores = cross_val_score(model, X, y, cv=5, scoring="r2")
     return {
         "R2_CV_mean": round(scores.mean(), 3),
-        "R2_CV_std":  round(scores.std(), 3),
+        "R2_CV_std": round(scores.std(), 3),
     }
 
 
 def feature_importance(model) -> pd.DataFrame:
     return (
         pd.DataFrame({
-            "feature":    FEATURES,
+            "feature": FEATURES,
             "importance": model.feature_importances_,
         })
         .sort_values("importance", ascending=False)
@@ -179,5 +179,5 @@ if __name__ == "__main__":
         "month":            5,
     }
     result = predict(exemple)
-    print(f"  Conditions : lundi 8h, 15°C, pas de pluie, vent 5 m/s")
+    print("  Conditions : lundi 8h, 15°C, pas de pluie, vent 5 m/s")
     print(f"  NO2 prédit : {result} µg/m³")
