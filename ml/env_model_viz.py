@@ -9,9 +9,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))  # noqa: E402
 
-from ml.env_model import (
+from ml.env_model import (  # noqa: E402
     FEATURES,
     evaluate,
     feature_importance,

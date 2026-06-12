@@ -11,8 +11,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from ml.env_model import load_data, load_model, FEATURES, TARGET
+sys.path.insert(0, str(Path(__file__).parent.parent))  # noqa: E402
+from ml.env_model import load_data, load_model, FEATURES, TARGET  # noqa: E402
 
 REPORT_PATH = Path(__file__).parent / "models" / "drift_report.json"
 REFERENCE_STATS_PATH = Path(__file__).parent / "models" / "reference_stats.json"
