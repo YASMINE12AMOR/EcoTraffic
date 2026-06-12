@@ -13,7 +13,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ml.env_model import (
     FEATURES,
-    TARGET,
     evaluate,
     feature_importance,
     load_data,

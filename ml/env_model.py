@@ -166,17 +166,17 @@ if __name__ == "__main__":
 
     print("\n--- Exemple de prédiction ---")
     exemple = {
-        "temperature_2m":  15.0,
-        "precipitation":    0.0,
-        "wind_speed_10m":   5.0,
-        "wind_kmh":        18.0,
-        "rain_flag":        0,
+        "temperature_2m": 15.0,
+        "precipitation": 0.0,
+        "wind_speed_10m": 5.0,
+        "wind_kmh": 18.0,
+        "rain_flag": 0,
         "carbon_monoxide": 140.0,
-        "ozone":           65.0,
-        "hour":             8,
-        "day_of_week":      0,
-        "is_weekend":       0,
-        "month":            5,
+        "ozone": 65.0,
+        "hour": 8,
+        "day_of_week": 0,
+        "is_weekend": 0,
+        "month": 5,
     }
     result = predict(exemple)
     print("  Conditions : lundi 8h, 15°C, pas de pluie, vent 5 m/s")
