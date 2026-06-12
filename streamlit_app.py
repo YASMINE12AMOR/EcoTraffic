@@ -1241,33 +1241,10 @@ with tab_model:
     m3.metric("R2", metrics["R2"])
     m4.metric("Algorithme", "XGBoost")
 
-    left, right = st.columns([1, 1])
-    with left:
-        fig_importance = px.bar(
-            importance,
-            x="importance",
-            y="feature",
-            orientation="h",
-            color="importance",
-            color_continuous_scale=["#2563EB", "#0CAF6D", "#D97706"],
-            labels={"importance": "Importance", "feature": "Variable"},
-        )
-        fig_importance.update_layout(
-            height=520,
-            yaxis={"categoryorder": "total ascending"},
-            margin=dict(l=8, r=8, t=12, b=8),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="#FFFFFF",
-            font=dict(color="#111827"),
-            coloraxis_showscale=False,
-        )
-        st.plotly_chart(fig_importance, use_container_width=True)
-
-    with right:
-        if MODEL_IMAGE_PATH.exists():
-            st.image(str(MODEL_IMAGE_PATH), use_container_width=True)
-        else:
-            st.info("L'image des resultats n'existe pas encore. Lance `python ml/env_model_viz.py`.")
+    if MODEL_IMAGE_PATH.exists():
+        st.image(str(MODEL_IMAGE_PATH), use_container_width=True)
+    else:
+        st.info("L'image des resultats n'existe pas encore. Lance `python ml/env_model_viz.py`.")
 
 with tab_predict:
     st.subheader("Simulation de scenario NO2")
