@@ -402,17 +402,35 @@ pytest tests/ -v -x
 
 <br>
 
-| Fichier | Tests | Ce qui est testé |
+### 📊 Résumé des tests par module
+
+| Fichier | # Tests | Catégorie | Description |
+|---|:---:|---|---|
+| `test_basic.py` | 1 | Fondamental | Test trivial d'assertion |
+| `test_extract.py` | 2 | ETL | Extraction météo et pollution (mocks HTTP) |
+| `test_load.py` | 1 | ETL | Chargement MongoDB (mongomock) |
+| `test_merge.py` | 13 | Transformation | Fusion météo + pollution, création features, validation cas d'erreur |
+| `test_data_env.py` | 22 | Qualité | Données environnement : colonnes, nulls, doublons, plages (T°, pluie, vent, polluants), cohérence flags |
+| `test_data_traffic.py` | 17 | Qualité | Données trafic : colonnes, plages vitesse (0-130 km/h), statuts valides, pas de doublons |
+| `test_env_model.py` | 9 | ML | Modèle XGBoost : chargement données, entraînement, split 80/20, métriques (MAE < 2, R² > 0.5), cross-validation |
+| `test_env_nodes.py` | 15 | Kedro (Env) | Preprocessing environnement : suppression colonnes, ajout features (hour, day_of_week, month, is_weekend, rain_flag), tri, déduplication |
+| `test_traffic_nodes.py` | 14 | Kedro (Trafic) | Parsing MongoDB (flat + nested), nettoyage statuts (HEAVY → heavy), extraction champs avec fallback, ajout datetime_hour |
+| `test_postgres_nodes.py` | 13 | Integration | Chargement PostgreSQL (env + trafic), extraction MongoDB, gestion DataFrames vides (mocks) |
+| **TOTAL** | **107** | — | — |
+
+### 🎯 Couverture fonctionnelle
+
+| Flux | Tests | Couverture |
 |---|:---:|---|
-| `test_data_traffic.py` | 17 | Qualité des données trafic (colonnes, plages, statuts, cohérence temporelle) |
-| `test_data_env.py` | 22 | Qualité des données météo + pollution (nulls, doublons, plages, flags) |
-| `test_env_model.py` | 19 | Modèle ML : chargement, entraînement, métriques, prédiction, sauvegarde |
-| `test_merge.py` | 13 | Fusion météo + pollution, flags, cas d'erreur |
-| `test_traffic_nodes.py` | 14 | Parsing et nettoyage des données trafic Kedro |
-| `test_env_nodes.py` | 11 | Preprocessing des données environnement Kedro |
-| `test_postgres_nodes.py` | 8 | Chargement PostgreSQL (trafic + env) + extraction MongoDB (mocks) |
-| `test_extract.py` | 2 | Extraction météo et pollution (mocks HTTP) |
-| `test_load.py` | 1 | Chargement MongoDB |
+| **Extraction (APIs)** | 2 | ✅ Météo + Pollution |
+| **Chargement (MongoDB)** | 1 | ✅ MongoDB insertion |
+| **Transformation (Merge)** | 13 | ✅ Fusion, features, erreurs |
+| **Qualité données (Env)** | 22 | ✅ 100% colonnes, nulls, plages, cohérence |
+| **Qualité données (Trafic)** | 17 | ✅ 100% colonnes, vitesse, statuts |
+| **Preprocessing Kedro (Env)** | 15 | ✅ Features temporelles, flags, déduplication |
+| **Preprocessing Kedro (Trafic)** | 14 | ✅ Parsing, normalisation, extraction |
+| **ML (XGBoost NO₂)** | 9 | ✅ Entraînement, métriques, prédictions |
+| **PostgreSQL + MongoDB** | 13 | ✅ Chargement, extraction, mocks |
 
 </details>
 
