@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 def fetch_pollution():
     url = os.getenv("AIR_QUALITY_API_URL")
     latitude = os.getenv("LATITUDE")
