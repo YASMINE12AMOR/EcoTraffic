@@ -31,7 +31,7 @@ def test_fetch_weather(mock_get, monkeypatch):
     assert "temperature_2m" in df.columns
 
 
-@patch("app.extract.pollution.requests.get")
+@patch("app.extract.weather.requests.get")
 def test_fetch_pollution(mock_get, monkeypatch):
     monkeypatch.setenv("AIR_QUALITY_API_URL", "https://fake-pollution-api.com")
     monkeypatch.setenv("LATITUDE", "48.1173")
