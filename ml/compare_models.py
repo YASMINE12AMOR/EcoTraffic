@@ -6,14 +6,11 @@ ml/models/models_comparison.json pour utilisation dans Streamlit.
 """
 
 import json
-import os
-import pickle
 import sys
 import time
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -22,7 +19,7 @@ from sklearn.preprocessing import StandardScaler
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ml.env_model import FEATURES, TARGET, load_data
+from ml.env_model import FEATURES, TARGET, load_data  # noqa: E402
 
 try:
     from catboost import CatBoostRegressor
@@ -53,7 +50,7 @@ def evaluate_model(model, X_test, y_test, model_name: str) -> dict:
     mae = mean_absolute_error(y_test, y_pred)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     r2 = r2_score(y_test, y_pred)
-    
+
     return {
         "MAE": round(float(mae), 3),
         "RMSE": round(float(rmse), 3),
@@ -95,7 +92,7 @@ def train_and_evaluate(
         X_train_scaled = X_train.copy()
         X_test_scaled = X_test.copy()
         X_scaled = X.copy()
-        
+
         if requires_scaling:
             scaler = StandardScaler()
             X_train_scaled = scaler.fit_transform(X_train)
@@ -109,7 +106,7 @@ def train_and_evaluate(
         # Évaluation
         metrics = evaluate_model(model, X_test_scaled, y_test, model_name)
         cv_metrics = cross_validate_model(model, X_scaled, y, cv_folds=5)
-        
+
         training_time = time.time() - start_time
         metrics["training_time_sec"] = round(training_time, 3)
         metrics.update(cv_metrics)
@@ -240,7 +237,7 @@ def compare_models():
             y,
             requires_scaling=model_config["scaling"],
         )
-        
+
         if metrics:
             results[model_name] = {
                 "metrics": metrics,
@@ -253,17 +250,17 @@ def compare_models():
     print("\n" + "=" * 80)
     print("CLASSEMENT PAR R2 (Score de determination)")
     print("=" * 80)
-    
+
     ranked = sorted(
         [(name, r["metrics"]["R2"]) for name, r in results.items() if r is not None],
         key=lambda x: x[1],
         reverse=True,
     )
-    
-    for rank, (name, r2_score) in enumerate(ranked, 1):
+
+    for rank, (name, r2_val) in enumerate(ranked, 1):
         medal = {1: "[1er]", 2: "[2e]", 3: "[3e]"}.get(rank, "    ")
-        print(f"{medal} #{rank}. {name:20} R2 = {r2_score:.3f}")
-    
+        print(f"{medal} #{rank}. {name:20} R2 = {r2_val:.3f}")
+
     # Meilleur modele
     if ranked:
         best_model, best_r2 = ranked[0]
@@ -273,7 +270,7 @@ def compare_models():
 
     # Sauvegarde résultats
     COMPARISON_PATH.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Conversion pour JSON serializable
     json_results = {}
     for name, result in results.items():
@@ -281,14 +278,14 @@ def compare_models():
             json_results[name] = {
                 "metrics": result["metrics"],
                 "justification": result["justification"],
-                "rank": next((i+1 for i, (n, _) in enumerate(ranked) if n == name), None)
+                "rank": next((i + 1 for i, (n, _) in enumerate(ranked) if n == name), None)
             }
         else:
             json_results[name] = None
-    
+
     with open(COMPARISON_PATH, "w", encoding="utf-8") as f:
         json.dump(json_results, f, indent=2, ensure_ascii=False)
-    
+
     print(f"\n[OK] Resultats sauvegardes : {COMPARISON_PATH}")
     print("\n")
 
