@@ -59,6 +59,7 @@ class WeatherExtractor(ApiExtractor):
             "latitude": self.latitude,
             "longitude": self.longitude,
             "hourly": "temperature_2m,precipitation,wind_speed_10m",
+            "past_days": 30,
         }
 
         data = self.fetch_with_retry(params)

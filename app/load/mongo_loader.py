@@ -23,6 +23,8 @@ class MongoLoader:
         db = client[self.mongo_db]
         collection = db[self.mongo_collection]
 
+        collection.create_index("datetime", unique=True)
+
         records = df.copy()
         for col in records.columns:
             if str(records[col].dtype).startswith("datetime64"):
@@ -30,13 +32,24 @@ class MongoLoader:
 
         documents = records.to_dict("records")
 
-        collection.delete_many({})
-        result = collection.insert_many(documents)
-        inserted_count = len(result.inserted_ids)
-        print(f"Inserted {inserted_count} documents into MongoDB")
+        inserted = 0
+        updated = 0
+        for doc in documents:
+            result = collection.update_one(
+                {"datetime": doc["datetime"]},
+                {"$set": doc},
+                upsert=True,
+            )
+            if result.upserted_id:
+                inserted += 1
+            elif result.modified_count:
+                updated += 1
+
+        total = collection.count_documents({})
+        print(f"MongoDB upsert: {inserted} inserted, {updated} updated, {total} total")
 
         client.close()
-        return inserted_count
+        return inserted + updated
 
 
 def save_to_mongo(df: pd.DataFrame) -> int:

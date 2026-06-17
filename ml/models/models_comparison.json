@@ -1,74 +1,74 @@
 {
   "XGBoost": {
     "metrics": {
-      "MAE": 0.813,
-      "RMSE": 1.057,
-      "R2": 0.831,
-      "training_time_sec": 3.269,
-      "CV_Mean": 0.434,
-      "CV_Std": 0.343
+      "MAE": 0.641,
+      "RMSE": 0.856,
+      "R2": 0.893,
+      "training_time_sec": 3.862,
+      "CV_Mean": 0.578,
+      "CV_Std": 0.149
     },
     "justification": "Gradient boosting classique. Gère bien les petits datasets et relations non-linéaires.",
     "rank": 1
   },
   "LightGBM": {
     "metrics": {
-      "MAE": 0.853,
-      "RMSE": 1.145,
-      "R2": 0.802,
-      "training_time_sec": 5.481,
-      "CV_Mean": 0.361,
-      "CV_Std": 0.496
+      "MAE": 0.668,
+      "RMSE": 0.926,
+      "R2": 0.875,
+      "training_time_sec": 6.088,
+      "CV_Mean": 0.533,
+      "CV_Std": 0.208
     },
     "justification": "Plus rapide que XGBoost. Meilleur sur petits datasets, moins d'overfitting.",
     "rank": 2
   },
   "CatBoost": {
     "metrics": {
-      "MAE": 0.985,
-      "RMSE": 1.304,
-      "R2": 0.743,
-      "training_time_sec": 2.175,
-      "CV_Mean": 0.547,
-      "CV_Std": 0.189
+      "MAE": 0.696,
+      "RMSE": 0.924,
+      "R2": 0.875,
+      "training_time_sec": 3.303,
+      "CV_Mean": 0.612,
+      "CV_Std": 0.128
     },
     "justification": "Conçu pour données hétérogènes. Pas besoin d'encodage, gère bien les features mixtes.",
     "rank": 3
   },
   "Random Forest": {
     "metrics": {
-      "MAE": 1.199,
-      "RMSE": 1.498,
-      "R2": 0.661,
-      "training_time_sec": 0.519,
-      "CV_Mean": 0.437,
-      "CV_Std": 0.189
+      "MAE": 0.947,
+      "RMSE": 1.257,
+      "R2": 0.769,
+      "training_time_sec": 0.678,
+      "CV_Mean": 0.42,
+      "CV_Std": 0.132
     },
     "justification": "Ensemble simple. Baseline pour comparaison. Moins d'overfitting que single tree.",
-    "rank": 4
+    "rank": 5
   },
   "Ridge Regression": {
     "metrics": {
-      "MAE": 1.385,
-      "RMSE": 1.828,
-      "R2": 0.496,
-      "training_time_sec": 0.084,
-      "CV_Mean": 0.499,
-      "CV_Std": 0.327
+      "MAE": 1.053,
+      "RMSE": 1.368,
+      "R2": 0.727,
+      "training_time_sec": 0.149,
+      "CV_Mean": 0.526,
+      "CV_Std": 0.177
     },
     "justification": "Modèle linéaire simple. Requiert scaling. Performant si relations sont linéaires.",
-    "rank": 5
+    "rank": 6
   },
   "Neural Network": {
     "metrics": {
-      "MAE": 1.435,
-      "RMSE": 2.003,
-      "R2": 0.394,
-      "training_time_sec": 0.134,
-      "CV_Mean": -0.144,
-      "CV_Std": 0.668
+      "MAE": 0.878,
+      "RMSE": 1.164,
+      "R2": 0.802,
+      "training_time_sec": 0.286,
+      "CV_Mean": 0.535,
+      "CV_Std": 0.222
     },
     "justification": "Réseau de neurones petit (pour petit dataset). Demande normalization.",
-    "rank": 6
+    "rank": 4
   }
 }

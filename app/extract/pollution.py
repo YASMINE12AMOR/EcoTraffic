@@ -15,6 +15,7 @@ class PollutionExtractor(ApiExtractor):
             "latitude": self.latitude,
             "longitude": self.longitude,
             "hourly": "pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,ozone,sulphur_dioxide",
+            "past_days": 30,
         }
 
         data = self.fetch_with_retry(params)
