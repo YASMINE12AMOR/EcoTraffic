@@ -16,12 +16,15 @@
 ![Airflow](https://img.shields.io/badge/Apache_Airflow-017CEE?style=flat-square&logo=apacheairflow&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![XGBoost](https://img.shields.io/badge/XGBoost-EB0F00?style=flat-square&logo=xgboost&logoColor=white)
+![LightGBM](https://img.shields.io/badge/LightGBM-02569B?style=flat-square&logo=lightgbm&logoColor=white)
+![CatBoost](https://img.shields.io/badge/CatBoost-FFCC00?style=flat-square&logoColor=black)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat-square&logo=scikitlearn&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
 ![Pytest](https://img.shields.io/badge/Pytest-107_tests-0A9EDC?style=flat-square&logo=pytest&logoColor=white)
 ![GitLab CI](https://img.shields.io/badge/GitLab_CI-FC6D26?style=flat-square&logo=gitlab&logoColor=white)
 
-![Model R²](https://img.shields.io/badge/Modèle_NO₂_R²-0.758-success?style=flat-square)
+![Model R²](https://img.shields.io/badge/Modèle_NO₂_R²-0.831-success?style=flat-square)
+![Models Compared](https://img.shields.io/badge/Modèles_comparés-6-blue?style=flat-square)
 ![Routes](https://img.shields.io/badge/Routes_Rennes-89-blue?style=flat-square)
 ![Localisation](https://img.shields.io/badge/Rennes-48.1173,_--1.6778-informational?style=flat-square)
 
@@ -34,7 +37,7 @@
 - 📡 Collecter en temps réel les données trafic, météo et pollution via des APIs
 - 🧹 Nettoyer, transformer et stocker les données dans des bases structurées
 - ⚙️ Automatiser l'exécution du pipeline avec Apache Airflow
-- 🤖 Appliquer un modèle ML pour prédire la qualité de l'air (NO₂)
+- 🤖 Comparer 6 modèles ML et sélectionner le meilleur pour prédire la qualité de l'air (NO₂)
 - 🌱 Poser les bases d'un **EcoTraffic Score** combinant trafic et environnement *(en cours)*
 
 ---
@@ -136,10 +139,12 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                     MACHINE LEARNING                             │
 │                                                                  │
-│  Modèle Environnement                                            │
+│  Comparaison de 6 modèles (compare_models.py)                    │
+│  XGBoost · LightGBM · CatBoost · Random Forest · Ridge · MLP    │
+│         ↓                                                        │
+│  Meilleur modèle : XGBoost Regression                            │
 │  - target : nitrogen_dioxide (NO₂)                               │
-│  - algo   : XGBoost Regression                                   │
-│  - R² = 0.758 / MAE = 0.587 µg/m³                                │
+│  - R² = 0.831 / MAE = 0.813 µg/m³                                │
 │         ↓                                                        │
 │  pollution_score (NO₂ µg/m³)                                     │
 └─────────────────────────────────────────────────────────────────┘
@@ -149,9 +154,10 @@
 │                     DASHBOARD (Streamlit)                        │
 │                                                                  │
 │  - KPIs : EcoTraffic Score, vitesse moyenne, qualité air         │
+│  - Comparaison interactive de 6 modèles ML (graphiques Plotly)   │
+│  - Visualisation dynamique du modèle XGBoost (auto-générée)      │
 │  - Graphiques trafic et environnement                            │
 │  - Refresh automatique toutes les heures                         │
-│  - Design inspiré Donezo (dark green featured card)              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -169,7 +175,7 @@
 | ⚙️ Orchestration | **Apache Airflow** | 2 DAGs (horaire + quotidien) |
 | 🐳 Conteneurisation | **Docker** + `docker-compose.merged.yml` | MongoDB + PostgreSQL + Airflow |
 | ✅ Tests | **Pytest** | 107 tests unitaires et d'intégration |
-| 🤖 ML | **XGBoost** + scikit-learn + matplotlib | Modèle NO₂ entraîné et visualisé |
+| 🤖 ML | **XGBoost** + LightGBM + CatBoost + scikit-learn | 6 modèles comparés, XGBoost retenu pour NO₂ |
 | 📊 Dashboard | **Streamlit** | Visualisation KPIs + graphiques temps réel |
 | 🚀 CI/CD | **GitLab CI** | Build → Test → Deploy |
 
@@ -220,10 +226,14 @@ EcoTraffic/
 │
 ├── ml/                               # Machine Learning
 │   ├── env_model.py                  # Modèle XGBoost — prédiction NO₂
-│   ├── env_model_viz.py              # Visualisation des résultats
+│   ├── compare_models.py             # Comparaison de 6 modèles ML
+│   ├── env_model_viz.py              # Visualisation des résultats (matplotlib)
+│   ├── monitor_drift.py              # Détection de data drift
 │   └── models/
 │       ├── env_no2_model.pkl         # Modèle entraîné (sauvegardé)
-│       └── env_model_results.png     # Graphiques des résultats
+│       ├── models_comparison.json    # Résultats comparaison des 6 modèles
+│       ├── reference_stats.json      # Statistiques de référence (drift)
+│       └── drift_report.json         # Rapport de data drift
 │
 ├── tests/                            # Tests automatiques (107 tests)
 │   ├── test_data_traffic.py          # Qualité données trafic
@@ -292,13 +302,26 @@ EcoTraffic/
 
 > **Objectif** — Prédire le taux de **dioxyde d'azote (NO₂)** à Rennes en µg/m³ à partir des conditions météo et de la pollution ambiante.
 
-### ⚙️ Modèle
+### 🔬 Comparaison de 6 modèles
+
+Six algorithmes ont été testés et comparés sur le même jeu de données (109 échantillons, split 80/20, cross-validation 5-fold) :
+
+| Rang | Modèle | R² | MAE | RMSE | CV R² moyen | Justification |
+|:---:|---|:---:|:---:|:---:|:---:|---|
+| 🥇 | **XGBoost** | **0.831** | **0.813** | **1.057** | 0.434 | Gradient boosting classique, gère bien les petits datasets et relations non-linéaires |
+| 🥈 | LightGBM | 0.802 | 0.853 | 1.145 | 0.361 | Plus rapide que XGBoost, moins d'overfitting |
+| 🥉 | CatBoost | 0.743 | 0.985 | 1.304 | 0.547 | Conçu pour données hétérogènes, pas besoin d'encodage |
+| 4 | Random Forest | 0.661 | 1.199 | 1.498 | 0.437 | Ensemble simple, baseline de comparaison |
+| 5 | Ridge Regression | 0.496 | 1.385 | 1.828 | 0.499 | Modèle linéaire, sous-performant sur relations non-linéaires |
+| 6 | Neural Network (MLP) | 0.394 | 1.435 | 2.003 | -0.144 | Trop peu de données pour un réseau de neurones |
+
+### ⚙️ Modèle retenu : XGBoost
 
 | Paramètre | Valeur |
 |---|---|
 | Algorithme | XGBoost Regression |
 | Target | `nitrogen_dioxide` (µg/m³) |
-| Dataset | 120 lignes — mai 2026 |
+| Dataset | 109 échantillons |
 | Split | 80% train / 20% test |
 
 <details>
@@ -308,21 +331,24 @@ EcoTraffic/
 
 | Raison | Explication |
 |---|---|
-| **Petit dataset** | 120 lignes seulement. XGBoost intègre une régularisation L1/L2 qui évite l'overfitting. |
+| **Meilleur R² (0.831)** | Classé 1er parmi les 6 modèles testés. |
+| **Petit dataset** | 109 échantillons. XGBoost intègre une régularisation L1/L2 qui évite l'overfitting. |
 | **Features hétérogènes** | Mélange continu, entiers et binaires — aucune normalisation requise. |
 | **Relations non-linéaires** | Pics NO₂ aux heures de pointe non capturables par une régression linéaire. |
-| **Interprétabilité** | Importance des features native (CO = 55%, ozone = 34%). |
-| **Rapidité** | Entraînement en < 1 seconde, ré-entraînable à chaque collecte. |
+| **Interprétabilité** | Importance des features native (ozone = 41.7%, hour = 27.5%). |
+| **Rapidité** | Entraînement en ~3s, ré-entraînable à chaque collecte. |
 
 </details>
 
-### 📈 Résultats
+### 📈 Résultats du meilleur modèle
 
 | Métrique | Valeur | Interprétation |
 |:---:|:---:|---|
-| **R²** | **0.758** | Le modèle explique 75.8% de la variance du NO₂ |
-| **MAE** | **0.587 µg/m³** | Erreur moyenne de 0.6 µg/m³ |
-| **RMSE** | **0.886 µg/m³** | Erreur quadratique |
+| **R²** | **0.831** | Le modèle explique 83.1% de la variance du NO₂ |
+| **MAE** | **0.813 µg/m³** | Erreur moyenne de 0.8 µg/m³ |
+| **RMSE** | **1.057 µg/m³** | Erreur quadratique |
+
+Les visualisations (réel vs prédit, erreurs, importance des features, scénarios par heure) sont générées **automatiquement** dans le dashboard Streamlit à chaque ouverture, sans intervention manuelle.
 
 ---
 
@@ -378,9 +404,14 @@ kedro run --pipeline data_processing
 ### 🤖 Modèle ML — Prédiction NO₂
 
 ```bash
+# Comparaison des 6 modèles (résultats dans ml/models/models_comparison.json)
+python ml/compare_models.py
+
+# Entraînement du modèle XGBoost seul
 python ml/env_model.py
-python ml/env_model_viz.py
 ```
+
+> Les graphiques ML sont générés automatiquement dans le dashboard Streamlit — plus besoin de lancer `env_model_viz.py`.
 
 ---
 
@@ -412,7 +443,7 @@ pytest tests/ -v -x
 | `test_merge.py` | 13 | Transformation | Fusion météo + pollution, création features, validation cas d'erreur |
 | `test_data_env.py` | 22 | Qualité | Données environnement : colonnes, nulls, doublons, plages (T°, pluie, vent, polluants), cohérence flags |
 | `test_data_traffic.py` | 17 | Qualité | Données trafic : colonnes, plages vitesse (0-130 km/h), statuts valides, pas de doublons |
-| `test_env_model.py` | 9 | ML | Modèle XGBoost : chargement données, entraînement, split 80/20, métriques (MAE < 2, R² > 0.5), cross-validation |
+| `test_env_model.py` | 9 | ML | Modèle XGBoost : chargement données, entraînement, split 80/20, métriques (MAE < 2, R² > 0.5), cross-validation. Les 6 modèles sont comparés via `compare_models.py` |
 | `test_env_nodes.py` | 15 | Kedro (Env) | Preprocessing environnement : suppression colonnes, ajout features (hour, day_of_week, month, is_weekend, rain_flag), tri, déduplication |
 | `test_traffic_nodes.py` | 14 | Kedro (Trafic) | Parsing MongoDB (flat + nested), nettoyage statuts (HEAVY → heavy), extraction champs avec fallback, ajout datetime_hour |
 | `test_postgres_nodes.py` | 13 | Integration | Chargement PostgreSQL (env + trafic), extraction MongoDB, gestion DataFrames vides (mocks) |

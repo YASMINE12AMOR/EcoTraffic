@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -23,6 +24,7 @@ from ml.env_model import (
 
 ROOT_DIR = Path(__file__).parent
 MODEL_IMAGE_PATH = ROOT_DIR / "ml" / "models" / "env_model_results.png"
+MODELS_COMPARISON_PATH = ROOT_DIR / "ml" / "models" / "models_comparison.json"
 TRAFFIC_CLEANED_PATH = ROOT_DIR / "ecotraffic" / "data" / "03_primary" / "traffic_cleaned.csv"
 
 POLLUTANTS = [
@@ -420,7 +422,7 @@ def get_model_outputs(df: pd.DataFrame):
     metrics = evaluate(model, x_test, y_test)
     importance = feature_importance(model)
     save_model(model)
-    return model, metrics, importance
+    return model, metrics, importance, x_test, y_test
 
 
 @st.cache_data(ttl=3600)
@@ -657,7 +659,7 @@ def to_csv_bytes(dataframe: pd.DataFrame) -> bytes:
 
 traffic_df = get_traffic_data()
 df = add_scores(get_data(), traffic_df)
-model, metrics, importance = get_model_outputs(df)
+model, metrics, importance, X_test, y_test = get_model_outputs(df)
 saved_model = get_saved_model()
 
 _now = datetime.now()
@@ -1234,17 +1236,323 @@ with tab_map:
         c2.markdown('<div class="small-card"><strong>Couche trafic</strong><span>Donnees trafic chargees sans GPS. Rafraichir pour activer la carte par route.</span></div>', unsafe_allow_html=True)
 
 with tab_model:
-    st.subheader("Performance du modele NO2")
+    st.subheader("Comparaison de 6 modeles ML")
+
+    if MODELS_COMPARISON_PATH.exists():
+        with open(MODELS_COMPARISON_PATH, "r", encoding="utf-8") as f:
+            comparison_data = json.load(f)
+
+        valid_models = {k: v for k, v in comparison_data.items() if v is not None}
+
+        if valid_models:
+            comp_df = pd.DataFrame([
+                {
+                    "Modele": name,
+                    "Rang": data["rank"],
+                    "MAE": data["metrics"]["MAE"],
+                    "RMSE": data["metrics"]["RMSE"],
+                    "R2": data["metrics"]["R2"],
+                    "CV Mean R2": data["metrics"].get("CV_Mean"),
+                    "CV Std": data["metrics"].get("CV_Std"),
+                    "Temps (s)": data["metrics"].get("training_time_sec"),
+                    "Justification": data["justification"],
+                }
+                for name, data in valid_models.items()
+            ]).sort_values("Rang")
+
+            best = comp_df.iloc[0]
+
+            st.markdown(
+                f"""
+                <div class="small-card" style="border-left: 4px solid var(--green);">
+                    <strong>Modele gagnant : {best['Modele']}</strong>
+                    <span>
+                        R2 = {best['R2']:.3f} | MAE = {best['MAE']:.3f} | RMSE = {best['RMSE']:.3f}<br>
+                        {best['Justification']}
+                    </span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            mc1, mc2 = st.columns(2)
+
+            with mc1:
+                fig_r2 = px.bar(
+                    comp_df,
+                    x="R2",
+                    y="Modele",
+                    orientation="h",
+                    color="R2",
+                    color_continuous_scale=["#DC2626", "#D97706", "#0CAF6D"],
+                    text="R2",
+                )
+                fig_r2.update_traces(texttemplate="%{text:.3f}", textposition="outside")
+                fig_r2.update_layout(
+                    title="R2 par modele (plus haut = meilleur)",
+                    height=380,
+                    yaxis=dict(categoryorder="total ascending", gridcolor="rgba(0,0,0,0.06)"),
+                    margin=dict(l=8, r=60, t=40, b=8),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="#FFFFFF",
+                    font=dict(color="#111827"),
+                    coloraxis_showscale=False,
+                    xaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+                )
+                st.plotly_chart(fig_r2, use_container_width=True)
+
+            with mc2:
+                fig_mae = px.bar(
+                    comp_df,
+                    x="MAE",
+                    y="Modele",
+                    orientation="h",
+                    color="MAE",
+                    color_continuous_scale=["#0CAF6D", "#D97706", "#DC2626"],
+                    text="MAE",
+                )
+                fig_mae.update_traces(texttemplate="%{text:.3f}", textposition="outside")
+                fig_mae.update_layout(
+                    title="MAE par modele (plus bas = meilleur)",
+                    height=380,
+                    yaxis=dict(categoryorder="total descending", gridcolor="rgba(0,0,0,0.06)"),
+                    margin=dict(l=8, r=60, t=40, b=8),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="#FFFFFF",
+                    font=dict(color="#111827"),
+                    coloraxis_showscale=False,
+                    xaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+                )
+                st.plotly_chart(fig_mae, use_container_width=True)
+
+            mc3, mc4 = st.columns(2)
+
+            with mc3:
+                fig_radar = go.Figure()
+                for _, row in comp_df.iterrows():
+                    fig_radar.add_trace(go.Scatterpolar(
+                        r=[row["R2"], 1 - row["MAE"] / comp_df["MAE"].max(),
+                           1 - row["RMSE"] / comp_df["RMSE"].max(),
+                           row["CV Mean R2"] if row["CV Mean R2"] and row["CV Mean R2"] > 0 else 0,
+                           1 - (row["Temps (s)"] / comp_df["Temps (s)"].max()) if row["Temps (s)"] else 0],
+                        theta=["R2", "1 - MAE norm", "1 - RMSE norm", "CV R2", "Rapidite"],
+                        fill="toself",
+                        name=row["Modele"],
+                        opacity=0.6,
+                    ))
+                fig_radar.update_layout(
+                    title="Profil multi-criteres (plus grand = meilleur)",
+                    polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+                    height=420,
+                    margin=dict(l=40, r=40, t=50, b=20),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#111827"),
+                )
+                st.plotly_chart(fig_radar, use_container_width=True)
+
+            with mc4:
+                fig_cv = go.Figure()
+                for _, row in comp_df.iterrows():
+                    cv_mean = row["CV Mean R2"] if row["CV Mean R2"] is not None else 0
+                    cv_std = row["CV Std"] if row["CV Std"] is not None else 0
+                    fig_cv.add_trace(go.Bar(
+                        x=[row["Modele"]],
+                        y=[cv_mean],
+                        error_y=dict(type="data", array=[cv_std], visible=True),
+                        name=row["Modele"],
+                        showlegend=False,
+                    ))
+                fig_cv.update_layout(
+                    title="Cross-validation R2 (5-fold) avec ecart-type",
+                    height=420,
+                    margin=dict(l=8, r=8, t=50, b=8),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="#FFFFFF",
+                    font=dict(color="#111827"),
+                    xaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+                    yaxis=dict(gridcolor="rgba(0,0,0,0.06)", title="R2 moyen"),
+                )
+                st.plotly_chart(fig_cv, use_container_width=True)
+
+            st.subheader("Tableau comparatif complet")
+            display_df = comp_df[["Rang", "Modele", "R2", "MAE", "RMSE", "CV Mean R2", "CV Std", "Temps (s)", "Justification"]]
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+            st.markdown("---")
+            st.subheader("Analyse et conclusion")
+
+            analysis_col1, analysis_col2 = st.columns(2)
+            with analysis_col1:
+                st.markdown(
+                    f"""
+                    <div class="small-card">
+                        <strong>Pourquoi {best['Modele']} gagne</strong>
+                        <span>
+                            Meilleur R2 ({best['R2']:.3f}) et meilleur MAE ({best['MAE']:.3f}).
+                            {best['Justification']}
+                            Sur un dataset de 109 echantillons avec des features heterogenes
+                            (meteo + pollution), le gradient boosting capture les relations
+                            non-lineaires mieux que les modeles lineaires ou les reseaux de neurones.
+                        </span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with analysis_col2:
+                worst = comp_df.iloc[-1]
+                st.markdown(
+                    f"""
+                    <div class="small-card">
+                        <strong>Pourquoi {worst['Modele']} est dernier</strong>
+                        <span>
+                            R2 = {worst['R2']:.3f} seulement. {worst['Justification']}
+                            Avec seulement 109 echantillons, les reseaux de neurones et modeles
+                            lineaires manquent de donnees ou de capacite pour capturer la complexite
+                            des interactions pollution-meteo.
+                        </span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.warning("Aucun modele valide dans le fichier de comparaison.")
+    else:
+        st.info(
+            "La comparaison de modeles n'a pas encore ete executee. "
+            "Lance `python ml/compare_models.py` pour generer les resultats."
+        )
+
+    st.markdown("---")
+    st.subheader("Modele XGBoost - Prediction NO2")
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("MAE", metrics["MAE"])
     m2.metric("RMSE", metrics["RMSE"])
     m3.metric("R2", metrics["R2"])
     m4.metric("Algorithme", "XGBoost")
 
-    if MODEL_IMAGE_PATH.exists():
-        st.image(str(MODEL_IMAGE_PATH), use_container_width=True)
-    else:
-        st.info("L'image des resultats n'existe pas encore. Lance `python ml/env_model_viz.py`.")
+    y_pred = model.predict(X_test)
+    errors = y_pred - y_test.values
+
+    viz_top1, viz_top2 = st.columns(2)
+
+    with viz_top1:
+        lim_min = min(float(y_test.min()), float(y_pred.min())) - 0.5
+        lim_max = max(float(y_test.max()), float(y_pred.max())) + 0.5
+        fig_rv = go.Figure()
+        fig_rv.add_trace(go.Scatter(
+            x=y_test.values, y=y_pred, mode="markers",
+            marker=dict(color="#2196F3", size=10, line=dict(color="white", width=1)),
+            name="Predictions",
+        ))
+        fig_rv.add_trace(go.Scatter(
+            x=[lim_min, lim_max], y=[lim_min, lim_max], mode="lines",
+            line=dict(color="red", dash="dash", width=1.5),
+            name="Prediction parfaite",
+        ))
+        fig_rv.add_annotation(
+            x=0.05, y=0.95, xref="paper", yref="paper", showarrow=False,
+            text=f"R2 = {metrics['R2']}<br>MAE = {metrics['MAE']} ug/m3",
+            bgcolor="lightyellow", bordercolor="#ccc", borderwidth=1,
+            font=dict(size=12),
+        )
+        fig_rv.update_layout(
+            title="Reel vs Predit",
+            xaxis_title="NO2 reel (ug/m3)",
+            yaxis_title="NO2 predit (ug/m3)",
+            height=380,
+            margin=dict(l=12, r=12, t=40, b=12),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#FFFFFF",
+            font=dict(color="#111827"),
+            xaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+            yaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+        )
+        st.plotly_chart(fig_rv, use_container_width=True)
+
+    with viz_top2:
+        fig_err = go.Figure()
+        fig_err.add_trace(go.Bar(
+            x=list(range(len(errors))), y=errors,
+            marker_color=["#F44336" if e > 0 else "#4CAF50" for e in errors],
+            opacity=0.8,
+        ))
+        fig_err.add_hline(y=0, line_color="black", line_width=1)
+        fig_err.add_annotation(
+            x=0.05, y=0.95, xref="paper", yref="paper", showarrow=False,
+            text=f"RMSE = {metrics['RMSE']} ug/m3",
+            bgcolor="lightyellow", bordercolor="#ccc", borderwidth=1,
+            font=dict(size=12),
+        )
+        fig_err.update_layout(
+            title="Erreurs de prediction",
+            xaxis_title="Echantillon de test",
+            yaxis_title="Erreur (predit - reel) ug/m3",
+            height=380, showlegend=False,
+            margin=dict(l=12, r=12, t=40, b=12),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#FFFFFF",
+            font=dict(color="#111827"),
+            xaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+            yaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+        )
+        st.plotly_chart(fig_err, use_container_width=True)
+
+    viz_bot1, viz_bot2 = st.columns(2)
+
+    with viz_bot1:
+        fig_fi = px.bar(
+            importance, x=importance["importance"] * 100, y="feature",
+            orientation="h", text=importance["importance"].apply(lambda v: f"{v*100:.1f}%"),
+            color=importance["importance"] * 100,
+            color_continuous_scale=["#90CAF9", "#1976D2"],
+        )
+        fig_fi.update_traces(textposition="outside")
+        fig_fi.update_layout(
+            title="Importance des features",
+            xaxis_title="Importance (%)", yaxis_title="",
+            height=380, yaxis=dict(autorange="reversed"),
+            margin=dict(l=12, r=60, t=40, b=12),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#FFFFFF",
+            font=dict(color="#111827"), coloraxis_showscale=False,
+            xaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+        )
+        st.plotly_chart(fig_fi, use_container_width=True)
+
+    with viz_bot2:
+        heures = list(range(24))
+        base_scenario = {
+            "temperature_2m": 15.0, "precipitation": 0.0,
+            "wind_speed_10m": 5.0, "wind_kmh": 18.0,
+            "rain_flag": 0, "carbon_monoxide": 140.0,
+            "ozone": 65.0, "day_of_week": 0,
+            "is_weekend": 0, "month": 5,
+        }
+        scenarios = {
+            "Lundi (semaine)": {**base_scenario, "day_of_week": 0, "is_weekend": 0},
+            "Samedi (weekend)": {**base_scenario, "day_of_week": 5, "is_weekend": 1},
+            "Jour de pluie": {**base_scenario, "precipitation": 1.5, "rain_flag": 1},
+        }
+        sc_colors = ["#1976D2", "#FF9800", "#4CAF50"]
+        fig_sc = go.Figure()
+        for (label, params), color in zip(scenarios.items(), sc_colors):
+            preds_sc = [float(model.predict(pd.DataFrame([{**params, "hour": h}])[FEATURES])[0]) for h in heures]
+            fig_sc.add_trace(go.Scatter(
+                x=heures, y=preds_sc, mode="lines+markers",
+                name=label, line=dict(color=color, width=2),
+                marker=dict(size=5),
+            ))
+        fig_sc.add_vrect(x0=7, x1=9, fillcolor="red", opacity=0.08, line_width=0, annotation_text="Pointe matin", annotation_position="top left")
+        fig_sc.add_vrect(x0=17, x1=19, fillcolor="orange", opacity=0.08, line_width=0, annotation_text="Pointe soir", annotation_position="top left")
+        fig_sc.update_layout(
+            title="NO2 predit selon l'heure - 3 scenarios",
+            xaxis_title="Heure de la journee",
+            yaxis_title="NO2 predit (ug/m3)",
+            height=380,
+            margin=dict(l=12, r=12, t=40, b=12),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#FFFFFF",
+            font=dict(color="#111827"),
+            xaxis=dict(gridcolor="rgba(0,0,0,0.06)", dtick=2),
+            yaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+        )
+        st.plotly_chart(fig_sc, use_container_width=True)
 
 with tab_predict:
     st.subheader("Simulation de scenario NO2")

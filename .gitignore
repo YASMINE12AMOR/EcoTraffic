@@ -13,6 +13,7 @@ airflow_home/
 
 # Logs
 *.log
+catboost_info/
 
 # Local presentation/report deliverables
 docs/
