@@ -82,6 +82,29 @@ services:
       retries: 5
       start_period: 60s
 
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: ecotraffic-streamlit
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_URI: postgresql+psycopg2://postgres:postgres@postgres:5432/ecotraffic
+      POSTGRES_TABLE_ENV: environment_features
+      MONGO_URI: mongodb://mongo:27017/ecotraffic
+      MONGO_DB: ecotraffic
+      MONGO_COLLECTION_ENV: weather_pollution
+    volumes:
+      - ./ml/models:/app/ml/models
+      - ./kedro_preprocessing/data:/app/kedro_preprocessing/data
+      - ./ecotraffic/data:/app/ecotraffic/data
+      - ./scripts:/app/scripts
+    ports:
+      - "8501:8501"
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus

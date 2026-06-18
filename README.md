@@ -20,10 +20,10 @@
 ![CatBoost](https://img.shields.io/badge/CatBoost-FFCC00?style=flat-square&logoColor=black)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat-square&logo=scikitlearn&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
-![Pytest](https://img.shields.io/badge/Pytest-107_tests-0A9EDC?style=flat-square&logo=pytest&logoColor=white)
+![Pytest](https://img.shields.io/badge/Pytest-130_tests-0A9EDC?style=flat-square&logo=pytest&logoColor=white)
 ![GitLab CI](https://img.shields.io/badge/GitLab_CI-FC6D26?style=flat-square&logo=gitlab&logoColor=white)
 
-![Model R²](https://img.shields.io/badge/Modèle_NO₂_R²-0.831-success?style=flat-square)
+![Model R²](https://img.shields.io/badge/Modèle_NO₂_R²-0.892-success?style=flat-square)
 ![Models Compared](https://img.shields.io/badge/Modèles_comparés-6-blue?style=flat-square)
 ![Routes](https://img.shields.io/badge/Routes_Rennes-89-blue?style=flat-square)
 ![Localisation](https://img.shields.io/badge/Rennes-48.1173,_--1.6778-informational?style=flat-square)
@@ -133,6 +133,7 @@
 │    extract_to_mongo                                              │
 │    → transform_with_kedro                                        │
 │    → check_postgres_table                                        │
+│    → compare_ml_models          ← models_comparison.json         │
 └─────────────────────────────────────────────────────────────────┘
          │
          ▼
@@ -144,7 +145,7 @@
 │         ↓                                                        │
 │  Meilleur modèle : XGBoost Regression                            │
 │  - target : nitrogen_dioxide (NO₂)                               │
-│  - R² = 0.831 / MAE = 0.813 µg/m³                                │
+│  - R² = 0.892 / MAE = 0.655 µg/m³                                │
 │         ↓                                                        │
 │  pollution_score (NO₂ µg/m³)                                     │
 └─────────────────────────────────────────────────────────────────┘
@@ -153,10 +154,12 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                     DASHBOARD (Streamlit)                        │
 │                                                                  │
-│  - KPIs : EcoTraffic Score, vitesse moyenne, qualité air         │
+│  - Conteneurisé (Docker) — accessible sur localhost:8501          │
+│  - 7 onglets : Vue globale, Trafic, Carte, Modele ML,           │
+│    Prediction NO2, Actions anti-pollution, Qualite des donnees   │
 │  - Comparaison interactive de 6 modèles ML (graphiques Plotly)   │
 │  - Visualisation dynamique du modèle XGBoost (auto-générée)      │
-│  - Graphiques trafic et environnement                            │
+│  - Actions anti-pollution adaptées au niveau de risque           │
 │  - Refresh automatique toutes les heures                         │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -173,10 +176,11 @@
 | 🍃 Stockage brut | **MongoDB** | Collections NoSQL (trafic + météo/pollution) |
 | 🐘 Stockage final | **PostgreSQL** | Tables `environment_features` + `traffic_features` |
 | ⚙️ Orchestration | **Apache Airflow** | 2 DAGs (horaire + quotidien) |
-| 🐳 Conteneurisation | **Docker** + `docker-compose.merged.yml` | MongoDB + PostgreSQL + Airflow |
-| ✅ Tests | **Pytest** | 107 tests unitaires et d'intégration |
+| 🐳 Conteneurisation | **Docker** + `docker-compose.merged.yml` | 7 services (MongoDB, PostgreSQL, Airflow, Streamlit, Prometheus, Grafana, cAdvisor) |
+| ✅ Tests | **Pytest** | 130 tests unitaires et d'intégration |
 | 🤖 ML | **XGBoost** + LightGBM + CatBoost + scikit-learn | 6 modèles comparés, XGBoost retenu pour NO₂ |
-| 📊 Dashboard | **Streamlit** | Visualisation KPIs + graphiques temps réel |
+| 📊 Dashboard | **Streamlit** (conteneurisé) | 7 onglets : vue globale, trafic, carte, ML, prédiction, actions, qualité |
+| 📈 Monitoring | **Prometheus** + **Grafana** + **cAdvisor** | Monitoring Docker (CPU, mémoire, réseau) |
 | 🚀 CI/CD | **GitLab CI** | Build → Test → Deploy |
 
 ---
@@ -235,7 +239,8 @@ EcoTraffic/
 │       ├── reference_stats.json      # Statistiques de référence (drift)
 │       └── drift_report.json         # Rapport de data drift
 │
-├── tests/                            # Tests automatiques (107 tests)
+├── tests/                            # Tests automatiques (130 tests)
+│   ├── test_compare_models.py        # Tests comparaison 6 modèles ML (21 tests)
 │   ├── test_data_traffic.py          # Qualité données trafic
 │   ├── test_data_env.py              # Qualité données météo+pollution
 │   ├── test_env_model.py             # Tests du modèle ML (19 tests)
@@ -244,7 +249,7 @@ EcoTraffic/
 │   ├── test_env_nodes.py             # Tests pipeline environnement Kedro
 │   ├── test_postgres_nodes.py        # Tests chargement PostgreSQL + extraction MongoDB
 │   ├── test_extract.py               # Tests extraction APIs
-│   └── test_load.py                  # Tests chargement MongoDB
+│   └── test_load.py                  # Tests chargement MongoDB (upsert, doublons)
 │
 ├── monitoring/
 │   └── prometheus.yml                # Config Prometheus + cAdvisor (monitoring Docker)
@@ -252,15 +257,16 @@ EcoTraffic/
 ├── scripts/
 │   └── build_traffic_cleaned.py      # Bypass API → CSV direct (sans MongoDB)
 │
-├── streamlit_app.py                  # Dashboard de visualisation
+├── streamlit_app.py                  # Dashboard de visualisation (7 onglets)
+├── Dockerfile.streamlit              # Image Docker pour Streamlit
 ├── .env                              # Variables d'environnement (à créer manuellement)
 ├── .gitlab-ci.yml                    # CI/CD : Build → Test → Deploy
 ├── pytest.ini                        # Configuration pytest
-├── docker-compose.merged.yml         # Stack complète recommandée (LocalExecutor)
-├── docker-compose.airflow.yml        # Ancienne stack (déprécié — SequentialExecutor)
-├── requirements.txt                  # Dépendances Python principales
-├── requirements-airflow.txt          # Dépendances Airflow
-├── requirements-dashboard.txt        # Dépendances Streamlit
+├── docker-compose.merged.yml         # Stack complète (7 services conteneurisés)
+├── docker-compose.airflow.yml        # Ancienne stack (déprécié)
+├── requirements.txt                  # Dépendances Python
+├── requirements-airflow.txt          # Dépendances Airflow (dans Docker)
+├── requirements-dashboard.txt        # Dépendances Streamlit (dans Docker)
 └── README.md
 ```
 
@@ -304,16 +310,16 @@ EcoTraffic/
 
 ### 🔬 Comparaison de 6 modèles
 
-Six algorithmes ont été testés et comparés sur le même jeu de données (109 échantillons, split 80/20, cross-validation 5-fold) :
+Six algorithmes ont été testés et comparés sur le même jeu de données (829 échantillons depuis PostgreSQL, split 80/20, cross-validation 5-fold) :
 
-| Rang | Modèle | R² | MAE | RMSE | CV R² moyen | Justification |
-|:---:|---|:---:|:---:|:---:|:---:|---|
-| 🥇 | **XGBoost** | **0.831** | **0.813** | **1.057** | 0.434 | Gradient boosting classique, gère bien les petits datasets et relations non-linéaires |
-| 🥈 | LightGBM | 0.802 | 0.853 | 1.145 | 0.361 | Plus rapide que XGBoost, moins d'overfitting |
-| 🥉 | CatBoost | 0.743 | 0.985 | 1.304 | 0.547 | Conçu pour données hétérogènes, pas besoin d'encodage |
-| 4 | Random Forest | 0.661 | 1.199 | 1.498 | 0.437 | Ensemble simple, baseline de comparaison |
-| 5 | Ridge Regression | 0.496 | 1.385 | 1.828 | 0.499 | Modèle linéaire, sous-performant sur relations non-linéaires |
-| 6 | Neural Network (MLP) | 0.394 | 1.435 | 2.003 | -0.144 | Trop peu de données pour un réseau de neurones |
+| Rang | Modèle | R² | MAE | RMSE | Justification |
+|:---:|---|:---:|:---:|:---:|---|
+| 🥇 | **XGBoost** | **0.892** | **0.655** | **1.057** | Gradient boosting classique, gère bien les relations non-linéaires |
+| 🥈 | CatBoost | 0.871 | 0.695 | — | Conçu pour données hétérogènes, pas besoin d'encodage |
+| 🥉 | LightGBM | 0.844 | 0.743 | — | Plus rapide que XGBoost, moins d'overfitting |
+| 4 | Neural Network (MLP) | 0.835 | 0.792 | — | Performant avec suffisamment de données |
+| 5 | Random Forest | 0.734 | 0.989 | — | Ensemble simple, baseline de comparaison |
+| 6 | Ridge Regression | 0.718 | 1.035 | — | Modèle linéaire, sous-performant sur relations non-linéaires |
 
 ### ⚙️ Modèle retenu : XGBoost
 
@@ -321,7 +327,8 @@ Six algorithmes ont été testés et comparés sur le même jeu de données (109
 |---|---|
 | Algorithme | XGBoost Regression |
 | Target | `nitrogen_dioxide` (µg/m³) |
-| Dataset | 109 échantillons |
+| Source données | PostgreSQL (`environment_features`) avec fallback CSV |
+| Dataset | 829 échantillons (accumulation historique) |
 | Split | 80% train / 20% test |
 
 <details>
@@ -331,8 +338,8 @@ Six algorithmes ont été testés et comparés sur le même jeu de données (109
 
 | Raison | Explication |
 |---|---|
-| **Meilleur R² (0.831)** | Classé 1er parmi les 6 modèles testés. |
-| **Petit dataset** | 109 échantillons. XGBoost intègre une régularisation L1/L2 qui évite l'overfitting. |
+| **Meilleur R² (0.892)** | Classé 1er parmi les 6 modèles testés. |
+| **Dataset croissant** | 829+ échantillons (accumulation automatique). XGBoost intègre une régularisation L1/L2 qui évite l'overfitting. |
 | **Features hétérogènes** | Mélange continu, entiers et binaires — aucune normalisation requise. |
 | **Relations non-linéaires** | Pics NO₂ aux heures de pointe non capturables par une régression linéaire. |
 | **Interprétabilité** | Importance des features native (ozone = 41.7%, hour = 27.5%). |
@@ -344,8 +351,8 @@ Six algorithmes ont été testés et comparés sur le même jeu de données (109
 
 | Métrique | Valeur | Interprétation |
 |:---:|:---:|---|
-| **R²** | **0.831** | Le modèle explique 83.1% de la variance du NO₂ |
-| **MAE** | **0.813 µg/m³** | Erreur moyenne de 0.8 µg/m³ |
+| **R²** | **0.892** | Le modèle explique 89.2% de la variance du NO₂ |
+| **MAE** | **0.655 µg/m³** | Erreur moyenne de 0.65 µg/m³ |
 | **RMSE** | **1.057 µg/m³** | Erreur quadratique |
 
 Les visualisations (réel vs prédit, erreurs, importance des features, scénarios par heure) sont générées **automatiquement** dans le dashboard Streamlit à chaque ouverture, sans intervention manuelle.
@@ -374,20 +381,41 @@ deploy →  déploiement manuel sur EC2 (uniquement sur main)
 
 ## ▶️ Lancer le projet
 
-### 🐳 Avec Docker et Airflow *(recommandé)*
+### Prérequis
+
+- **Docker Desktop** (inclut Docker Compose)
+- **Git** (pour cloner le projet)
+
+### 1. Cloner et lancer (une seule commande)
 
 ```bash
-docker compose -f docker-compose.merged.yml up --build
+git clone <url-du-repo>
+cd EcoTraffic
+docker compose -f docker-compose.merged.yml up --build -d
 ```
 
-> Interface Airflow : `http://localhost:8080` — Identifiants : `admin` / `admin123`
+Cela démarre **7 services** automatiquement :
 
-### 📊 Dashboard Streamlit
+| Service | URL | Identifiants |
+|---|---|---|
+| **Streamlit** (dashboard) | `http://localhost:8501` | — |
+| **Airflow** (orchestration) | `http://localhost:8080` | admin / admin123 |
+| **Grafana** (monitoring) | `http://localhost:3000` | admin / admin |
+| Prometheus | `http://localhost:9090` | — |
+| cAdvisor | `http://localhost:8081` | — |
+| MongoDB | `localhost:27017` | — |
+| PostgreSQL | `localhost:5432` | postgres / postgres |
 
-```bash
-pip install streamlit
-streamlit run streamlit_app.py
-```
+> Aucune installation Python locale requise — tout est conteneurisé.
+
+### 2. Lancer le pipeline de données
+
+Dans Airflow (`http://localhost:8080`), activez le DAG **`ecotraffic_full_pipeline`**. Il exécute automatiquement :
+1. Collecte météo + pollution (30 jours) → MongoDB
+2. Preprocessing Kedro → PostgreSQL
+3. Comparaison de 6 modèles ML → `models_comparison.json`
+
+Le dashboard Streamlit se met à jour automatiquement (cache 1h).
 
 ### 💻 En local *(sans Docker)*
 
@@ -429,7 +457,7 @@ pytest tests/ -v -x
 ```
 
 <details>
-<summary><b>📋 Couverture des tests (107 tests)</b></summary>
+<summary><b>📋 Couverture des tests (130 tests)</b></summary>
 
 <br>
 
@@ -439,29 +467,31 @@ pytest tests/ -v -x
 |---|:---:|---|---|
 | `test_basic.py` | 1 | Fondamental | Test trivial d'assertion |
 | `test_extract.py` | 2 | ETL | Extraction météo et pollution (mocks HTTP) |
-| `test_load.py` | 1 | ETL | Chargement MongoDB (mongomock) |
+| `test_load.py` | 3 | ETL | Chargement MongoDB : upsert, pas de doublons, mise à jour existants |
 | `test_merge.py` | 13 | Transformation | Fusion météo + pollution, création features, validation cas d'erreur |
-| `test_data_env.py` | 22 | Qualité | Données environnement : colonnes, nulls, doublons, plages (T°, pluie, vent, polluants), cohérence flags |
-| `test_data_traffic.py` | 17 | Qualité | Données trafic : colonnes, plages vitesse (0-130 km/h), statuts valides, pas de doublons |
-| `test_env_model.py` | 9 | ML | Modèle XGBoost : chargement données, entraînement, split 80/20, métriques (MAE < 2, R² > 0.5), cross-validation. Les 6 modèles sont comparés via `compare_models.py` |
-| `test_env_nodes.py` | 15 | Kedro (Env) | Preprocessing environnement : suppression colonnes, ajout features (hour, day_of_week, month, is_weekend, rain_flag), tri, déduplication |
-| `test_traffic_nodes.py` | 14 | Kedro (Trafic) | Parsing MongoDB (flat + nested), nettoyage statuts (HEAVY → heavy), extraction champs avec fallback, ajout datetime_hour |
-| `test_postgres_nodes.py` | 13 | Integration | Chargement PostgreSQL (env + trafic), extraction MongoDB, gestion DataFrames vides (mocks) |
-| **TOTAL** | **107** | — | — |
+| `test_data_env.py` | 22 | Qualité | Données environnement : colonnes, nulls, doublons, plages, cohérence flags |
+| `test_data_traffic.py` | 17 | Qualité | Données trafic : colonnes, plages vitesse (0-130 km/h), statuts valides |
+| `test_env_model.py` | 19 | ML | Modèle XGBoost : chargement PostgreSQL, entraînement, métriques, prédictions |
+| `test_compare_models.py` | 21 | ML | Comparaison 6 modèles : évaluation, cross-validation, JSON valide, classement |
+| `test_env_nodes.py` | 11 | Kedro (Env) | Preprocessing environnement : features temporelles, flags, déduplication |
+| `test_traffic_nodes.py` | 13 | Kedro (Trafic) | Parsing MongoDB, nettoyage statuts, extraction champs, ajout datetime_hour |
+| `test_postgres_nodes.py` | 8 | Integration | Chargement PostgreSQL (append), extraction MongoDB, gestion vides |
+| **TOTAL** | **130** | — | — |
 
 ### 🎯 Couverture fonctionnelle
 
 | Flux | Tests | Couverture |
 |---|:---:|---|
 | **Extraction (APIs)** | 2 | ✅ Météo + Pollution |
-| **Chargement (MongoDB)** | 1 | ✅ MongoDB insertion |
+| **Chargement (MongoDB)** | 3 | ✅ Upsert, doublons, mise à jour |
 | **Transformation (Merge)** | 13 | ✅ Fusion, features, erreurs |
 | **Qualité données (Env)** | 22 | ✅ 100% colonnes, nulls, plages, cohérence |
 | **Qualité données (Trafic)** | 17 | ✅ 100% colonnes, vitesse, statuts |
-| **Preprocessing Kedro (Env)** | 15 | ✅ Features temporelles, flags, déduplication |
-| **Preprocessing Kedro (Trafic)** | 14 | ✅ Parsing, normalisation, extraction |
-| **ML (XGBoost NO₂)** | 9 | ✅ Entraînement, métriques, prédictions |
-| **PostgreSQL + MongoDB** | 13 | ✅ Chargement, extraction, mocks |
+| **Preprocessing Kedro (Env)** | 11 | ✅ Features temporelles, flags, déduplication |
+| **Preprocessing Kedro (Trafic)** | 13 | ✅ Parsing, normalisation, extraction |
+| **ML (XGBoost NO₂)** | 19 | ✅ Entraînement, métriques, prédictions, importance |
+| **ML (Comparaison 6 modèles)** | 21 | ✅ Évaluation, cross-validation, JSON, classement |
+| **PostgreSQL + MongoDB** | 8 | ✅ Chargement append, extraction, mocks |
 
 </details>
 
