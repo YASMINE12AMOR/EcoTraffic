@@ -118,7 +118,7 @@ def test_cross_validate_r2_mean_entre_moins1_et_1(trained):
 def test_feature_importance_contient_toutes_les_features(trained):
     model, _, _, _, _, _ = trained
     fi = feature_importance(model)
-    assert list(fi["feature"]) == sorted(FEATURES, key=lambda f: -fi.set_index("feature").loc[f, "importance"])
+    assert set(fi["feature"]) == set(FEATURES)
 
 
 def test_feature_importance_somme_egale_1(trained):

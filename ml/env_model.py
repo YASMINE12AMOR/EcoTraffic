@@ -39,11 +39,14 @@ import pickle
 
 import numpy as np
 import pandas as pd
+from dotenv import load_dotenv
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import cross_val_score, train_test_split
 from xgboost import XGBRegressor
 
-DATA_PATH = os.path.join(
+load_dotenv()
+
+CSV_FALLBACK_PATH = os.path.join(
     os.path.dirname(__file__), "..",
     "kedro_preprocessing", "data", "02_intermediate", "preprocessed_env_df.csv",
 )
@@ -65,8 +68,25 @@ FEATURES = [
 TARGET = "nitrogen_dioxide"
 
 
+def _load_from_postgres() -> pd.DataFrame:
+    postgres_uri = os.getenv("POSTGRES_URI")
+    table = os.getenv("POSTGRES_TABLE_ENV", "environment_features")
+    if not postgres_uri:
+        raise ValueError("POSTGRES_URI not set")
+    from sqlalchemy import create_engine
+    engine = create_engine(postgres_uri)
+    with engine.connect() as conn:
+        df = pd.read_sql(f"SELECT * FROM {table}", conn)  # noqa: S608
+    print(f"Donnees chargees depuis PostgreSQL ({table}): {len(df)} lignes")
+    return df
+
+
 def load_data() -> pd.DataFrame:
-    df = pd.read_csv(DATA_PATH)
+    try:
+        df = _load_from_postgres()
+    except Exception:
+        df = pd.read_csv(CSV_FALLBACK_PATH)
+        print(f"Fallback CSV: {len(df)} lignes")
     df = df.dropna(subset=FEATURES + [TARGET])
     df = df[~df[TARGET].isin([float("inf"), float("-inf")])]
     return df

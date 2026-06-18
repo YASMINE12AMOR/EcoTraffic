@@ -75,9 +75,25 @@ def save_env_to_postgres(df: pd.DataFrame) -> None:
     postgres_table = os.getenv("POSTGRES_TABLE_ENV", "environment_features")
 
     engine = create_engine(postgres_uri)
-    df.to_sql(postgres_table, engine, if_exists="replace", index=False)
 
-    print(f"{len(df)} lignes écrites dans PostgreSQL -> table {postgres_table}")
+    try:
+        with engine.connect() as conn:
+            existing = pd.read_sql(
+                f"SELECT datetime FROM {postgres_table}",  # noqa: S608
+                conn,
+            )
+        existing_dates = set(existing["datetime"].astype(str))
+        new_rows = df[~df["datetime"].astype(str).isin(existing_dates)]
+    except Exception:
+        new_rows = df
+
+    if new_rows.empty:
+        print("Aucune nouvelle ligne a inserer dans PostgreSQL.")
+        return
+
+    new_rows.to_sql(postgres_table, engine, if_exists="append", index=False)
+
+    print(f"{len(new_rows)} nouvelles lignes ajoutees dans PostgreSQL -> table {postgres_table}")
 
 
 def save_traffic_to_postgres(df: pd.DataFrame) -> None:
