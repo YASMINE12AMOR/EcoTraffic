@@ -1630,26 +1630,33 @@ with tab_model:
         st.plotly_chart(fig_sc, use_container_width=True)
 
 with tab_predict:
-    st.subheader("Simulation de scenario NO2")
+    st.subheader("Prediction NO2 - Simulateur de scenarios")
     st.markdown(
-        '<p class="section-note">Modifie les conditions meteo et pollution pour estimer la concentration de NO2 predite par le modele.</p>',
+        '<p class="section-note">'
+        "Modifiez les conditions meteo et pollution pour predire le niveau de NO2 "
+        "a Rennes. Le modele XGBoost (R2={}) estime la concentration "
+        "en fonction de 11 variables. Utile pour anticiper les pics de pollution."
+        "</p>".format(metrics["R2"]),
         unsafe_allow_html=True,
     )
 
     form_col1, form_col2, form_col3 = st.columns(3)
     with form_col1:
+        st.markdown("**Conditions meteo**")
         temperature = st.slider("Temperature (C)", -10.0, 40.0, get_default_value(df, "temperature_2m", 15.0), 0.1)
         precipitation = st.slider("Precipitation (mm)", 0.0, 20.0, get_default_value(df, "precipitation", 0.0), 0.1)
         wind_speed = st.slider("Vent (m/s)", 0.0, 30.0, get_default_value(df, "wind_speed_10m", 5.0), 0.1)
         wind_kmh = st.slider("Vent (km/h)", 0.0, 120.0, get_default_value(df, "wind_kmh", 18.0), 0.1)
 
     with form_col2:
-        carbon_monoxide = st.slider("Monoxyde de carbone", 0.0, 500.0, get_default_value(df, "carbon_monoxide", 140.0), 1.0)
-        ozone = st.slider("Ozone", 0.0, 200.0, get_default_value(df, "ozone", 65.0), 1.0)
+        st.markdown("**Pollution ambiante**")
+        carbon_monoxide = st.slider("Monoxyde de carbone (ug/m3)", 0.0, 500.0, get_default_value(df, "carbon_monoxide", 140.0), 1.0)
+        ozone = st.slider("Ozone (ug/m3)", 0.0, 200.0, get_default_value(df, "ozone", 65.0), 1.0)
         hour = st.slider("Heure", 0, 23, int(get_default_value(df, "hour", 8)))
         month = st.slider("Mois", 1, 12, int(get_default_value(df, "month", 5)))
 
     with form_col3:
+        st.markdown("**Contexte temporel**")
         day_of_week = st.selectbox(
             "Jour",
             options=list(range(7)),
@@ -1673,13 +1680,49 @@ with tab_predict:
     }
 
     no2_prediction = model_predict(input_data, saved_model or model)
-    p1, p2 = st.columns([0.8, 1.2])
-    with p1:
-        st.metric("NO2 predit", f"{no2_prediction:.2f} ug/m3")
-        projected_score = min(100, (no2_prediction / max(df[TARGET].max(), 1)) * 100)
-        st.plotly_chart(gauge("Risque NO2", projected_score), use_container_width=True)
-    with p2:
-        st.dataframe(pd.DataFrame([input_data]), use_container_width=True, hide_index=True)
+    no2_mean = float(df[TARGET].mean())
+    no2_max = float(df[TARGET].max())
+
+    if no2_prediction <= 10:
+        qualite_label = "Bon"
+        qualite_color = "#0CAF6D"
+        qualite_detail = "Niveau faible, air de bonne qualite."
+    elif no2_prediction <= 25:
+        qualite_label = "Modere"
+        qualite_color = "#D97706"
+        qualite_detail = "Niveau acceptable. Populations sensibles : limiter les efforts prolonges en exterieur."
+    elif no2_prediction <= 40:
+        qualite_label = "Eleve"
+        qualite_color = "#EA580C"
+        qualite_detail = "Proche du seuil OMS (40 ug/m3). Reduire les activites exterieures prolongees."
+    else:
+        qualite_label = "Tres eleve"
+        qualite_color = "#DC2626"
+        qualite_detail = "Depasse le seuil OMS. Alerte recommandee pour les populations sensibles."
+
+    diff_vs_mean = no2_prediction - no2_mean
+    diff_pct = (diff_vs_mean / no2_mean * 100) if no2_mean > 0 else 0
+
+    st.markdown("---")
+    r1, r2, r3 = st.columns(3)
+    r1.metric("NO2 predit", f"{no2_prediction:.1f} ug/m3")
+    r2.metric("Moyenne historique", f"{no2_mean:.1f} ug/m3", delta=f"{diff_vs_mean:+.1f} ug/m3")
+    r3.metric("Max historique", f"{no2_max:.1f} ug/m3")
+
+    st.markdown(
+        f"""
+        <div class="small-card" style="border-left: 4px solid {qualite_color};">
+            <strong style="color: {qualite_color};">Qualite de l'air : {qualite_label}</strong>
+            <span>
+                NO2 predit : <b>{no2_prediction:.1f} ug/m3</b>
+                ({diff_pct:+.0f}% vs moyenne historique).<br>
+                {qualite_detail}<br><br>
+                <b>Seuils OMS :</b> Bon &lt; 10 | Modere 10-25 | Eleve 25-40 | Tres eleve &gt; 40 ug/m3
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 with tab_report:
     st.subheader("Rapport decisionnel")
