@@ -1681,6 +1681,26 @@ with tab_predict:
     with p2:
         st.dataframe(pd.DataFrame([input_data]), use_container_width=True, hide_index=True)
 
+    st.markdown("---")
+    st.markdown(
+        """
+        <div class="small-card">
+            <strong>Interpretation des resultats</strong>
+            <span>
+                Le modele XGBoost predit la concentration de NO2 en fonction des conditions
+                que vous definissez ci-dessus. La jauge indique le niveau de risque par rapport
+                au maximum historique observe.<br><br>
+                <b>Seuils OMS pour le NO2 :</b><br>
+                &bull; <b style="color:#0CAF6D;">Bon</b> : &lt; 10 ug/m3 — air de bonne qualite<br>
+                &bull; <b style="color:#D97706;">Modere</b> : 10 - 25 ug/m3 — acceptable, vigilance pour les personnes sensibles<br>
+                &bull; <b style="color:#EA580C;">Eleve</b> : 25 - 40 ug/m3 — reduire les activites exterieures prolongees<br>
+                &bull; <b style="color:#DC2626;">Tres eleve</b> : &gt; 40 ug/m3 — seuil OMS depasse, alerte recommandee
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 with tab_report:
     st.subheader("Rapport decisionnel")
     st.markdown(

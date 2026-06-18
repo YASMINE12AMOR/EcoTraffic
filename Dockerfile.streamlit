@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements-dashboard.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY streamlit_app.py .
+COPY ml/ ml/
+COPY app/ app/
+COPY ecotraffic/ ecotraffic/
+COPY kedro_preprocessing/ kedro_preprocessing/
+COPY scripts/ scripts/
+
+ENV PYTHONPATH=/app
+ENV STREAMLIT_SERVER_HEADLESS=true
+ENV STREAMLIT_SERVER_PORT=8501
+
+EXPOSE 8501
+
+CMD ["streamlit", "run", "streamlit_app.py", "--server.address", "0.0.0.0"]

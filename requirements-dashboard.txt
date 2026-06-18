@@ -4,3 +4,9 @@ plotly
 streamlit
 scikit-learn
 xgboost
+lightgbm
+catboost
+python-dotenv
+pymongo
+sqlalchemy
+psycopg2-binary
