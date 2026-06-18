@@ -104,11 +104,17 @@ def ecotraffic_full_pipeline():
         print(f"Nombre de lignes dans environment_features: {count}")
         return f"Nombre de lignes dans environment_features: {count}"
 
+    @task(task_id="compare_ml_models")
+    def compare_ml_models() -> None:
+        ml_root = _ECOTRAFFIC_ROOT if (_ECOTRAFFIC_ROOT / "ml").exists() else _AIRFLOW_ROOT
+        _run_command(["python", "ml/compare_models.py"], cwd=ml_root)
+
     mongo_step = extract_to_mongo()
     kedro_step = transform_with_kedro()
     postgres_check = check_postgres_table()
+    ml_compare = compare_ml_models()
 
-    mongo_step >> kedro_step >> postgres_check
+    mongo_step >> kedro_step >> postgres_check >> ml_compare
 
 
 ecotraffic_full_pipeline()

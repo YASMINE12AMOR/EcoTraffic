@@ -616,41 +616,100 @@ def build_decision_summary(
     pollution_score: float,
     traffic_score: float,
     traffic_source: str,
+    latest_row: pd.Series = None,
 ) -> str:
     dominant = "pollution" if pollution_score >= traffic_score else "trafic"
-    if status == "Critique":
-        action = "surveillance renforcee et analyse prioritaire des zones a risque"
-    elif status == "Vigilance":
-        action = "suivi regulier de l'evolution pollution/trafic"
-    else:
-        action = "surveillance standard"
+
+    context_parts = []
+    if latest_row is not None:
+        no2 = latest_row.get("nitrogen_dioxide", 0)
+        hour = latest_row.get("hour", -1)
+        is_rush = hour in [7, 8, 9, 17, 18, 19]
+        is_rainy = latest_row.get("rain_flag", 0) == 1
+        if no2 > 40:
+            context_parts.append(f"Le NO2 ({no2:.1f} ug/m3) depasse le seuil OMS de 40 ug/m3")
+        if is_rush:
+            context_parts.append("Periode d'heure de pointe detectee")
+        if is_rainy:
+            context_parts.append("Pluie en cours (dispersion naturelle du NO2)")
+
+    context = ". ".join(context_parts) + "." if context_parts else ""
 
     return (
         f"Situation {status.lower()} avec un EcoTraffic Score de {score:.0f}/100. "
-        f"Le facteur dominant est le {dominant}. "
-        f"Le score trafic utilise la source: {traffic_source}. "
-        f"Action recommandee: {action}."
+        f"Le facteur dominant est la {dominant} ({pollution_score:.0f} vs {traffic_score:.0f}). "
+        f"{context}"
     )
 
 
-def decision_actions(status: str) -> list[str]:
+def decision_actions(status: str, latest_row: pd.Series = None) -> list[dict]:
+    hour = int(latest_row.get("hour", 12)) if latest_row is not None else 12
+    no2 = float(latest_row.get("nitrogen_dioxide", 0)) if latest_row is not None else 0
+    is_rush = hour in [7, 8, 9, 17, 18, 19]
+    wind = float(latest_row.get("wind_speed_10m", 5)) if latest_row is not None else 5
+
     if status == "Critique":
-        return [
-            "Prioriser la surveillance des axes les plus lents.",
-            "Suivre l'evolution du NO2 et des particules fines.",
-            "Preparer une communication de vigilance si la situation persiste.",
+        actions = [
+            {
+                "titre": "Reduction du trafic",
+                "detail": "Activer la circulation alternee ou limiter l'acces "
+                "aux vehicules les plus polluants (Crit'Air 4-5) dans le centre de Rennes.",
+            },
+            {
+                "titre": "Vitesse reduite",
+                "detail": "Abaisser la vitesse a 70 km/h sur la rocade et 30 km/h en centre-ville "
+                "pour reduire les emissions de NO2 liees a l'acceleration.",
+            },
+            {
+                "titre": "Alerte population",
+                "detail": f"NO2 a {no2:.1f} ug/m3 — informer les populations sensibles "
+                "(enfants, asthmatiques) de limiter les activites en exterieur.",
+            },
+            {
+                "titre": "Transports alternatifs",
+                "detail": "Renforcer la frequence des bus/metro et rendre le stationnement relais gratuit "
+                "pour inciter au report modal.",
+            },
         ]
-    if status == "Vigilance":
-        return [
-            "Comparer la tendance pollution avec les heures de pointe.",
-            "Surveiller les routes avec vitesse moyenne basse.",
-            "Rafraichir les donnees trafic avant la prise de decision.",
+    elif status == "Vigilance":
+        actions = [
+            {
+                "titre": "Optimisation des feux",
+                "detail": "Activer les ondes vertes sur les axes principaux pour fluidifier le trafic "
+                "et reduire les arrets/redemarrages (pics de NO2).",
+            },
+            {
+                "titre": "Zones 30 temporaires",
+                "detail": "Etendre les zones 30 aux quartiers residentiels proches des axes charges "
+                "pendant les heures de pointe." if is_rush else
+                "Maintenir les zones 30 existantes et surveiller l'evolution.",
+            },
+            {
+                "titre": "Incitation mobilite douce",
+                "detail": "Communiquer sur les itineraires velo et les transports en commun "
+                "pour les trajets domicile-travail aux heures de pointe.",
+            },
         ]
-    return [
-        "Maintenir une surveillance standard.",
-        "Verifier la fraicheur des donnees avant diffusion.",
-        "Conserver l'historique pour analyser les tendances.",
-    ]
+    else:
+        actions = [
+            {
+                "titre": "Prevention",
+                "detail": "Conditions favorables — profiter de cette periode pour planifier "
+                "des actions structurelles (pistes cyclables, bornes de recharge).",
+            },
+            {
+                "titre": "Analyse des tendances",
+                "detail": "Comparer les niveaux actuels avec l'historique pour identifier "
+                "les heures et jours ou le NO2 augmente regulierement.",
+            },
+            {
+                "titre": "Ventilation naturelle",
+                "detail": f"Vent a {wind:.1f} m/s — conditions {'favorables' if wind > 3 else 'faibles'} "
+                "pour la dispersion des polluants.",
+            },
+        ]
+
+    return actions
 
 
 def to_csv_bytes(dataframe: pd.DataFrame) -> bytes:
@@ -696,8 +755,8 @@ with st.sidebar:
 
     filtered_traffic_df = traffic_df
 
-    pollutant = st.selectbox("Polluant", POLLUTANTS)
-    smooth_window = st.slider("Lissage horaire", 1, 12, 3)
+    pollutant = "nitrogen_dioxide"
+    smooth_window = 3
     traffic_status_filter = []
     if not traffic_df.empty:
         traffic_statuses = sorted(
@@ -837,88 +896,98 @@ if not traffic_df.empty:
 
 tab_control, tab_traffic, tab_map, tab_model, tab_predict, tab_report, tab_data = st.tabs(
     [
-        "Command Center",
+        "Vue globale",
         "Trafic",
         "Carte Rennes",
         "Modele ML",
-        "Simulation",
-        "Rapport",
-        "Donnees",
+        "Prediction NO2",
+        "Actions anti-pollution",
+        "Qualite des donnees",
     ]
 )
 
 with tab_control:
-    left, middle, right = st.columns([1.05, 1.15, 0.9])
+    cc_score_col, cc_decomp_col = st.columns([1, 1])
 
-    with left:
+    with cc_score_col:
+        st.subheader("Score global EcoTraffic")
         st.plotly_chart(gauge("Score EcoTraffic", score), use_container_width=True)
         st.markdown(
             f"""
             <div class="small-card">
-                <strong>Lecture du score</strong>
-                <span>Statut actuel: {status}. 0-35 normal, 35-65 vigilance, 65-100 critique.</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            """
-            <div class="small-card">
-                <strong>Formule du score</strong>
-                <span>EcoTraffic Score = 62% pollution + 38% trafic.</span>
+                <strong>Comment est calcule ce score ?</strong>
+                <span>
+                    Le score combine deux composantes :<br>
+                    &bull; <b>Pollution (62%)</b> : moyenne ponderee de NO2 (38%), PM10 (24%), PM2.5 (24%) et CO (14%)<br>
+                    &bull; <b>Trafic (38%)</b> : base sur le statut des routes, la vitesse moyenne et le temps de trajet<br><br>
+                    <b>Score actuel : {score:.0f}/100</b> &rarr; Statut <b>{status}</b>
+                    (0-35 = Normal, 35-65 = Vigilance, 65-100 = Critique)
+                </span>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    with middle:
-        st.subheader("Signal pollution")
-        trend = filtered_df.copy()
-        trend["pollutant_smoothed"] = trend[pollutant].rolling(smooth_window, min_periods=1).mean()
-        fig = go.Figure()
-        fig.add_trace(
-            go.Scatter(
-                x=trend["datetime"],
-                y=trend[pollutant],
-                mode="lines",
-                name="Mesure",
-                line=dict(color="rgba(37, 99, 235, 0.35)", width=2),
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=trend["datetime"],
-                y=trend["pollutant_smoothed"],
-                mode="lines",
-                name="Tendance",
-                line=dict(color="#0CAF6D", width=3),
-            )
-        )
-        fig.update_layout(
-            height=360,
-            margin=dict(l=12, r=12, t=10, b=10),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="#FFFFFF",
-            font=dict(color="#111827"),
-            legend=dict(orientation="h"),
-            xaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
-            yaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    with right:
-        st.subheader("Decomposition")
-        st.plotly_chart(gauge("Pollution", pollution_score), use_container_width=True)
-        st.plotly_chart(gauge("Trafic", traffic_score), use_container_width=True)
+    with cc_decomp_col:
+        st.subheader("Decomposition du score")
+        dc1, dc2 = st.columns(2)
+        with dc1:
+            st.plotly_chart(gauge("Pollution", pollution_score), use_container_width=True)
+        with dc2:
+            st.plotly_chart(gauge("Trafic", traffic_score), use_container_width=True)
+        dominant = "pollution" if pollution_score >= traffic_score else "trafic"
         st.markdown(
-            """
+            f"""
             <div class="small-card">
-                <strong>Limites a connaitre</strong>
-                <span>Le modele predit uniquement le NO2. Les donnees trafic et environnement peuvent avoir des dates differentes selon les collectes.</span>
+                <strong>Analyse de la situation</strong>
+                <span>
+                    Le facteur dominant est la <b>{dominant}</b>
+                    (pollution {pollution_score:.0f}/100 vs trafic {traffic_score:.0f}/100).<br>
+                    Source trafic : <b>{str(traffic_source)}</b>.<br><br>
+                    &bull; <b>Score trafic reel</b> : 50% statut route (freeflow/heavy/congested)
+                    + 35% pression vitesse (1 - moy/max) + 15% temps de trajet<br>
+                    &bull; <b>Score proxy</b> (si pas de donnees trafic) : heures de pointe, pluie, CO, vent
+                </span>
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+    st.markdown("---")
+    st.subheader("Evolution de la pollution")
+    trend = filtered_df.copy()
+    trend["pollutant_smoothed"] = trend[pollutant].rolling(smooth_window, min_periods=1).mean()
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=trend["datetime"],
+            y=trend[pollutant],
+            mode="lines",
+            name="Mesure brute",
+            line=dict(color="rgba(37, 99, 235, 0.35)", width=2),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=trend["datetime"],
+            y=trend["pollutant_smoothed"],
+            mode="lines",
+            name=f"Tendance (lissage {smooth_window}h)",
+            line=dict(color="#0CAF6D", width=3),
+        )
+    )
+    fig.update_layout(
+        title=f"{pollutant} — mesure horaire et tendance lissee",
+        height=360,
+        margin=dict(l=12, r=12, t=40, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#FFFFFF",
+        font=dict(color="#111827"),
+        legend=dict(orientation="h"),
+        xaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+        yaxis=dict(gridcolor="rgba(0,0,0,0.06)", title="ug/m3"),
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Comparaison des polluants")
     pollution_long = filtered_df.melt(
@@ -1238,10 +1307,16 @@ with tab_map:
 with tab_model:
     st.subheader("Comparaison de 6 modeles ML")
 
-    if MODELS_COMPARISON_PATH.exists():
+    @st.cache_data(ttl=3600)
+    def load_comparison_data():
+        if not MODELS_COMPARISON_PATH.exists():
+            return None
         with open(MODELS_COMPARISON_PATH, "r", encoding="utf-8") as f:
-            comparison_data = json.load(f)
+            return json.load(f)
 
+    comparison_data = load_comparison_data()
+
+    if comparison_data is not None:
         valid_models = {k: v for k, v in comparison_data.items() if v is not None}
 
         if valid_models:
@@ -1416,7 +1491,7 @@ with tab_model:
                 )
         else:
             st.warning("Aucun modele valide dans le fichier de comparaison.")
-    else:
+    elif comparison_data is None:
         st.info(
             "La comparaison de modeles n'a pas encore ete executee. "
             "Lance `python ml/compare_models.py` pour generer les resultats."
@@ -1608,6 +1683,15 @@ with tab_predict:
 
 with tab_report:
     st.subheader("Rapport decisionnel")
+    st.markdown(
+        '<p class="section-note">'
+        "Ce rapport propose des actions concretes pour reduire le NO2 a Rennes, "
+        "adaptees en temps reel au niveau de risque (Normal, Vigilance, Critique). "
+        "Les recommandations s'appuient sur le score EcoTraffic, les donnees meteo, "
+        "le niveau de pollution et les conditions de trafic."
+        "</p>",
+        unsafe_allow_html=True,
+    )
 
     summary = build_decision_summary(
         status=status,
@@ -1615,6 +1699,7 @@ with tab_report:
         pollution_score=pollution_score,
         traffic_score=traffic_score,
         traffic_source=str(traffic_source),
+        latest_row=latest,
     )
     st.markdown(
         f"""
@@ -1634,13 +1719,13 @@ with tab_report:
 
     action_col, context_col = st.columns([1, 1])
     with action_col:
-        st.subheader("Aide a la decision")
-        for action in decision_actions(status):
+        st.subheader("Actions pour reduire le NO2")
+        for action in decision_actions(status, latest_row=latest):
             st.markdown(
                 f"""
                 <div class="small-card">
-                    <strong>Action</strong>
-                    <span>{action}</span>
+                    <strong>{action['titre']}</strong>
+                    <span>{action['detail']}</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -1688,42 +1773,38 @@ with tab_report:
                 use_container_width=True,
             )
 
+    st.markdown("---")
+    st.subheader("Reference des actions par niveau de risque")
+    actions_ref = pd.DataFrame([
+        {"Niveau": "Normal (0-35)", "Action": "Prevention", "Detail": "Planifier des actions structurelles (pistes cyclables, bornes de recharge)"},
+        {"Niveau": "Normal (0-35)", "Action": "Analyse des tendances", "Detail": "Identifier les heures et jours recurrents de hausse du NO2"},
+        {"Niveau": "Normal (0-35)", "Action": "Ventilation naturelle", "Detail": "Evaluer l'impact du vent sur la dispersion des polluants"},
+        {"Niveau": "Vigilance (35-65)", "Action": "Optimisation des feux", "Detail": "Ondes vertes sur axes principaux pour reduire arrets/redemarrages (pics NO2)"},
+        {"Niveau": "Vigilance (35-65)", "Action": "Zones 30 temporaires", "Detail": "Etendre les zones 30 aux quartiers residentiels pendant les heures de pointe"},
+        {"Niveau": "Vigilance (35-65)", "Action": "Incitation mobilite douce", "Detail": "Communication velo et transports en commun pour les trajets domicile-travail"},
+        {"Niveau": "Critique (65-100)", "Action": "Reduction du trafic", "Detail": "Circulation alternee, restriction Crit'Air 4-5 dans le centre de Rennes"},
+        {"Niveau": "Critique (65-100)", "Action": "Vitesse reduite", "Detail": "70 km/h sur la rocade, 30 km/h en centre-ville"},
+        {"Niveau": "Critique (65-100)", "Action": "Alerte population", "Detail": "Informer les populations sensibles (enfants, asthmatiques) de limiter les sorties"},
+        {"Niveau": "Critique (65-100)", "Action": "Transports alternatifs", "Detail": "Renforcement bus/metro, parkings relais gratuits pour inciter au report modal"},
+    ])
+    st.dataframe(actions_ref, use_container_width=True, hide_index=True)
+
 with tab_data:
-    st.subheader("Qualite et couverture des donnees")
-    d1, d2, d3, d4 = st.columns(4)
+    st.subheader("Qualite des donnees collectees")
+
+    d1, d2, d3 = st.columns(3)
     d1.metric("Lignes", f"{len(filtered_df)}")
     d2.metric("Debut", filtered_df["datetime"].min().strftime("%d/%m/%Y"))
     d3.metric("Fin", filtered_df["datetime"].max().strftime("%d/%m/%Y"))
-    d4.metric("Valeurs manquantes", int(filtered_df.isna().sum().sum()))
 
-    left, right = st.columns([1, 1])
-    with left:
-        missing = (
-            filtered_df.isna()
-            .mean()
-            .mul(100)
-            .reset_index()
-            .rename(columns={"index": "colonne", 0: "missing_pct"})
-        )
-        fig_missing = px.bar(missing, x="colonne", y="missing_pct", labels={"missing_pct": "% manquant"})
-        fig_missing.update_layout(
-            height=360,
-            margin=dict(l=8, r=8, t=12, b=8),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="#FFFFFF",
-            font=dict(color="#111827"),
-        )
-        st.plotly_chart(fig_missing, use_container_width=True)
-    with right:
-        corr_cols = ["temperature_2m", "precipitation", "wind_kmh", "pm10", "pm2_5", "carbon_monoxide", TARGET, "ozone"]
-        corr = filtered_df[corr_cols].corr(numeric_only=True)
-        fig_corr = px.imshow(corr, text_auto=".2f", color_continuous_scale="RdYlGn", zmin=-1, zmax=1)
-        fig_corr.update_layout(
-            height=360,
-            margin=dict(l=8, r=8, t=12, b=8),
-            paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#111827"),
-        )
-        st.plotly_chart(fig_corr, use_container_width=True)
-
-    st.dataframe(filtered_df.tail(30), use_container_width=True, hide_index=True)
+    corr_cols = ["temperature_2m", "precipitation", "wind_kmh", "pm10", "pm2_5", "carbon_monoxide", TARGET, "ozone"]
+    corr = filtered_df[corr_cols].corr(numeric_only=True)
+    fig_corr = px.imshow(corr, text_auto=".2f", color_continuous_scale="RdYlGn", zmin=-1, zmax=1)
+    fig_corr.update_layout(
+        title="Correlations entre variables meteo et pollution",
+        height=420,
+        margin=dict(l=8, r=8, t=40, b=8),
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#111827"),
+    )
+    st.plotly_chart(fig_corr, use_container_width=True)

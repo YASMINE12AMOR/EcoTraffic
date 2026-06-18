@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(POSTGRES_URI='' python -c ' *)",
+      "Bash(POSTGRES_URI=\"postgresql+psycopg2://postgres:postgres@localhost:5432/ecotraffic\" python ml/compare_models.py)",
+      "Bash(python -m pytest tests/test_env_model.py tests/test_compare_models.py -v --tb=short)",
+      "Bash(docker exec *)"
+    ]
+  }
+}

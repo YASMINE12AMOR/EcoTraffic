@@ -4,8 +4,9 @@ COPY airflow/requirements.txt /opt/airflow/requirements.txt
 
 RUN pip install --no-cache-dir -r /opt/airflow/requirements.txt
 
-COPY airflow/entrypoint.sh /entrypoint.sh
 USER root
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm -rf /var/lib/apt/lists/*
+COPY airflow/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 USER airflow
 
