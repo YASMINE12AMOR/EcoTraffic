@@ -367,9 +367,12 @@ Le pipeline CI/CD suit l'ordre **Build → Test → Deploy** :
 build  →  construit l'image Docker (airflow/Dockerfile)
   ↓         et sauvegarde l'artifact (image.tar.gz)
 test   →  installe les dépendances Python et lance pytest
-  ↓         107 tests doivent passer pour continuer
+  ↓         130 tests doivent passer pour continuer
 deploy →  déploiement manuel sur EC2 (uniquement sur main)
 ```
+
+<img width="1071" height="160" alt="image" src="https://github.com/user-attachments/assets/0a1fcf7b-3b0a-4366-9808-f1b4d7eff75e" />
+
 
 | Stage | Déclencheur | Image |
 |---|---|---|
