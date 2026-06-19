@@ -331,7 +331,7 @@ Six algorithmes ont été testés et comparés sur le même jeu de données (829
 | Dataset | 829 échantillons (accumulation historique) |
 | Split | 80% train / 20% test |
 
-<details>
+<details open>
 <summary><b>💡 Pourquoi XGBoost ?</b></summary>
 
 <br>
@@ -345,7 +345,7 @@ Six algorithmes ont été testés et comparés sur le même jeu de données (829
 | **Interprétabilité** | Importance des features native (ozone = 41.7%, hour = 27.5%). |
 | **Rapidité** | Entraînement en ~3s, ré-entraînable à chaque collecte. |
 
-</details>
+</details open>
 
 ### 📈 Résultats du meilleur modèle
 
@@ -456,7 +456,7 @@ pytest tests/test_postgres_nodes.py -v
 pytest tests/ -v -x
 ```
 
-<details>
+<details open>
 <summary><b>📋 Couverture des tests (130 tests)</b></summary>
 
 <br>
@@ -493,7 +493,7 @@ pytest tests/ -v -x
 | **ML (Comparaison 6 modèles)** | 21 | ✅ Évaluation, cross-validation, JSON, classement |
 | **PostgreSQL + MongoDB** | 8 | ✅ Chargement append, extraction, mocks |
 
-</details>
+</details open>
 
 ---
 
