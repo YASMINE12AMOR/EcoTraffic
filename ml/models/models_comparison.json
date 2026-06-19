@@ -1,24 +1,24 @@
 {
   "XGBoost": {
     "metrics": {
-      "MAE": 0.726,
-      "RMSE": 0.949,
-      "R2": 0.849,
-      "training_time_sec": 4.021,
-      "CV_Mean": 0.59,
-      "CV_Std": 0.186
+      "MAE": 0.666,
+      "RMSE": 0.848,
+      "R2": 0.905,
+      "training_time_sec": 3.401,
+      "CV_Mean": 0.611,
+      "CV_Std": 0.185
     },
     "justification": "Gradient boosting classique. Gère bien les petits datasets et relations non-linéaires.",
     "rank": 1
   },
   "LightGBM": {
     "metrics": {
-      "MAE": 0.779,
-      "RMSE": 1.053,
-      "R2": 0.814,
-      "training_time_sec": 3.74,
-      "CV_Mean": 0.503,
-      "CV_Std": 0.291
+      "MAE": 0.782,
+      "RMSE": 1.041,
+      "R2": 0.856,
+      "training_time_sec": 3.418,
+      "CV_Mean": 0.645,
+      "CV_Std": 0.17
     },
     "justification": "Plus rapide que XGBoost. Meilleur sur petits datasets, moins d'overfitting.",
     "rank": 2
@@ -26,36 +26,36 @@
   "CatBoost": null,
   "Random Forest": {
     "metrics": {
-      "MAE": 0.999,
-      "RMSE": 1.278,
-      "R2": 0.726,
-      "training_time_sec": 1.833,
-      "CV_Mean": 0.463,
-      "CV_Std": 0.17
+      "MAE": 1.018,
+      "RMSE": 1.346,
+      "R2": 0.759,
+      "training_time_sec": 1.68,
+      "CV_Mean": 0.443,
+      "CV_Std": 0.287
     },
     "justification": "Ensemble simple. Baseline pour comparaison. Moins d'overfitting que single tree.",
     "rank": 4
   },
   "Ridge Regression": {
     "metrics": {
-      "MAE": 1.036,
-      "RMSE": 1.339,
-      "R2": 0.7,
-      "training_time_sec": 0.073,
-      "CV_Mean": 0.603,
-      "CV_Std": 0.052
+      "MAE": 1.138,
+      "RMSE": 1.445,
+      "R2": 0.723,
+      "training_time_sec": 0.058,
+      "CV_Mean": 0.637,
+      "CV_Std": 0.051
     },
     "justification": "Modèle linéaire simple. Requiert scaling. Performant si relations sont linéaires.",
     "rank": 5
   },
   "Neural Network": {
     "metrics": {
-      "MAE": 0.925,
-      "RMSE": 1.22,
-      "R2": 0.751,
-      "training_time_sec": 0.312,
-      "CV_Mean": 0.561,
-      "CV_Std": 0.113
+      "MAE": 0.87,
+      "RMSE": 1.146,
+      "R2": 0.825,
+      "training_time_sec": 0.348,
+      "CV_Mean": 0.687,
+      "CV_Std": 0.058
     },
     "justification": "Réseau de neurones petit (pour petit dataset). Demande normalization.",
     "rank": 3
